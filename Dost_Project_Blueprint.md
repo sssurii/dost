@@ -11,7 +11,7 @@
 ## 2. Technical Stack & Infrastructure Specifications
 
 ### 2.1 Backend & Orchestration
-* **Framework:** Laravel 12.x
+* **Framework:** Laravel 13.x
 * **Docker Network:** Static subnet `15.15.0.0/16`, Gateway `15.15.0.1`.
 * **Database:** PostgreSQL.
 * **Real-time:** Laravel Reverb (WebSockets) for UI state changes.
@@ -35,7 +35,7 @@
 
 ### Phase 1: Infrastructure (The Bedrock)
 
-#### **Ticket INF-01: Dockerized Laravel 12.x Setup**
+#### **Ticket INF-01: Dockerized Laravel 13.x Setup**
 * **Context:** Ensure the environment is isolated and mirrors production-grade networking.
 * **Details:**
     * Set up `docker-compose.yml`.
