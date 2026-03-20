@@ -47,7 +47,7 @@ composer require pestphp/pest-plugin-laravel --dev
 composer require larastan/larastan --dev
 composer require phpmd/phpmd --dev
 
-# Pint (ships with Laravel 12+ but pin it explicitly)
+# Pint (ships with Laravel 13+ but pin it explicitly)
 composer require laravel/pint --dev
 ```
 

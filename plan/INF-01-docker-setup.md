@@ -1,4 +1,4 @@
-# INF-01: Dockerized Laravel 12.x Setup
+# INF-01: Dockerized Laravel 13.x Setup
 
 **Phase:** 1 — Infrastructure  
 **Complexity:** 2 | **Estimate:** 4h  
@@ -12,7 +12,7 @@
 Provision a fully containerised, reproducible dev environment using Docker Compose that mirrors a production-grade setup, with static networking, a Postgres 16 database, and a Laravel Reverb WebSocket server.
 
 > **Architecture context:** This Docker setup is the **development / browser-testing environment**. It is NOT the production Android build.
-> - Laravel 12 is confirmed (`nativephp/mobile` v3 supports `illuminate/contracts ^10|^11|^12`)
+> - Laravel 13 is confirmed (`nativephp/mobile` v3 updated to support `illuminate/contracts ^10|^11|^12|^13` — March 2026)
 > - The Android build uses **SQLite on-device** (configured in MOB-01); this Docker environment uses PostgreSQL for richer dev tooling
 > - **Queue:** Docker dev uses `database` driver (Valkey optional for production); Android build uses `database` driver (SQLite-backed)
 
@@ -49,20 +49,19 @@ Provision a fully containerised, reproducible dev environment using Docker Compo
 
 ## 4. Step-by-Step Implementation
 
-### Step 1 — Bootstrap Laravel 12.x
+### Step 1 — Bootstrap Laravel 13.x
 
 ```bash
-# Install fresh Laravel 12
-composer create-project laravel/laravel:^12.0 dost
-
-cd dost
+# Install fresh Laravel 13 inside the Docker container
+composer create-project laravel/laravel:^13.0 /tmp/laravel-new --no-interaction --prefer-dist
+cp -rn /tmp/laravel-new/. /var/www/html/
 
 # Verify version
 php artisan --version
-# Expected: Laravel Framework 12.x.x
+# Expected: Laravel Framework 13.x.x
 ```
 
-> **Note:** `nativephp/mobile` v3 officially supports `illuminate/contracts ^10|^11|^12`. Laravel 12 is the confirmed version for this project.
+> **Note:** `nativephp/mobile` v3 updated its tag in March 2026 to support `illuminate/contracts ^10|^11|^12|^13`. Laravel 13 is the confirmed version for this project. Bootstrapped via Docker (no host PHP required) — see actual installed version: **13.1.1**.
 
 ### Step 2 — Create `docker-compose.yml`
 
@@ -432,7 +431,7 @@ dost/
 | IP collision with host network | Confirm `15.15.0.0/16` is not used on dev machine; change subnet if needed |
 | PHP extension missing for Postgres | Ensure `php8.3-pgsql` is in Dockerfile |
 | Reverb container starts before app is ready | Use `depends_on` with `service_started`; app handles reconnects |
-| `nativephp/mobile` v3.x compatibility | By design — Laravel 12 is confirmed; `nativephp/mobile` v3 fully supports it |
+| `nativephp/mobile` v3.x compatibility | ✅ Resolved — Laravel 13 now supported (March 2026 tag update) |
 | PostgreSQL not usable in Android build | By design — Android build uses SQLite (configured in MOB-01) |
 | Valkey image unfamiliar | Drop-in Redis replacement; all Laravel Redis commands work unchanged |
 

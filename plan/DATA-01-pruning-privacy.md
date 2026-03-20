@@ -180,9 +180,9 @@ final class CleanupAudio extends Command
 
 ### Step 3 — Schedule the Command
 
-Update `app/Console/Kernel.php` (or use `routes/console.php` in Laravel 12+):
+Update `app/Console/Kernel.php` (or use `routes/console.php` in Laravel 13+):
 
-**Laravel 12+ approach (in `routes/console.php`):**
+**Laravel 13+ approach (in `routes/console.php`):**
 
 ```php
 <?php

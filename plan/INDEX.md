@@ -63,11 +63,11 @@ INF-01 (Docker)
 
 ### Phase 1: Infrastructure (7 tickets → 9h total)
 
-| Ticket | Title | Est. | Complexity |
-|--------|-------|------|-----------|
+| Ticket | Title                         | Est. | Complexity |
+|--------|-------------------------------|------|-----------|
 | INF-01 | Dockerized Laravel 13.x Setup | 4h | 2 |
-| INF-02 | Code Quality Toolchain | 2h | 1 |
-| INF-03 | MCP Documentation Sync | 3h | 3 |
+| INF-02 | Code Quality Toolchain        | 2h | 1 |
+| INF-03 | MCP Documentation Sync        | 3h | 3 |
 
 **Phase 1 Goal:** A working Docker environment where all developers can run `docker compose up -d` and get a fully configured Laravel 13 app with Postgres, Reverb, and all quality tools wired up.
 
@@ -131,7 +131,7 @@ INF-01 (Docker)
 | Conversation Scope | Daily (new per day) | Simplest for MVP; confirmed in Q7 |
 | Recording Cleanup | Keep DB row, null audio paths after `expires_at` | Preserves stats for UI-02; confirmed Option C in Q4 |
 | WebSockets | Laravel Reverb (self-hosted MVP) | Q15 resolved; Pusher Sandbox viable for small beta |
-| Laravel Version | **12** (recommended) or 13 | `nativephp/mobile` v3 supports L12 officially; L13 untested (Q3b) |
+| Laravel Version | **13** (confirmed) | `nativephp/mobile` v3 updated tag (March 2026) — now supports `illuminate/contracts ^13.x`; installed: **13.1.1** (Q3b) |
 
 ---
 
@@ -197,7 +197,7 @@ AiAudioReady        → Livewire (via Reverb)     → UI plays audio
 
 See **[QUESTIONS.md](./QUESTIONS.md)** for all open questions.  
 **2 are still blocking** and need answers before Phase 1 begins:
-1. **Q3b** — Laravel 12 vs 13? (`nativephp/mobile` v3 only officially supports L12)
+1. **Q3b** — Laravel 12 vs 13? ✅ **Laravel 13 confirmed** — NativePHP Mobile 3.x released updated tag supporting `illuminate/contracts ^13.x` (March 2026)
 2. **Q16** — SQLite (device-local) vs PostgreSQL (remote server) architecture?
 
 All other questions are resolved.

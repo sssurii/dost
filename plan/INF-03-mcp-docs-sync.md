@@ -159,7 +159,7 @@ Or configure your editor's MCP to index these files automatically.
 
 | File | Source | Last Updated |
 |------|--------|-------------|
-| `laravel-ai-sdk.md` | https://laravel.com/docs/13.x/ai-sdk | Manual sync |
+| `laravel-ai-sdk.md` | https://laravel.com/docs/12.x/ai-sdk | Manual sync |
 | `nativephp-mobile.md` | https://nativephp.com/docs/mobile | Manual sync |
 | `gemini-api.md` | https://ai.google.dev/gemini-api | Manual sync |
 ```
@@ -173,7 +173,7 @@ Create `docs/context/laravel-ai-sdk.md`:
 
 ## Package
 - **Composer:** `laravel/ai`
-- **Docs:** https://laravel.com/docs/13.x/ai-sdk
+- **Docs:** https://laravel.com/docs/12.x/ai-sdk
 - **GitHub:** https://github.com/laravel/ai
 
 ## Installation

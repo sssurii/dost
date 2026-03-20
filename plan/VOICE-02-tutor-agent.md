@@ -451,7 +451,7 @@ final class ProcessRecording implements ShouldQueue
 
 ### Step 8 — Register Listener & Configure Queue
 
-**`EventServiceProvider` (or `bootstrap/app.php` in Laravel 12+):**
+**`EventServiceProvider` (or `bootstrap/app.php` in Laravel 13+):**
 
 ```php
 use App\Events\RecordingFinished;
@@ -668,16 +668,16 @@ describe('ProcessRecording Listener', function () {
 
 ## 8. Risks & Mitigations
 
-| Risk | Mitigation |
-|------|-----------|
+| Risk                                                   | Mitigation |
+|--------------------------------------------------------|-----------|
 | `laravel/ai` `Files\Audio` doesn't support `audio/mp4` | Verify in R&D-01; if fails, use `Files\Document` with audio MIME or raw Gemini REST API |
-| Audio file > 20 MB inline limit | Throw descriptive exception; implement Gemini File API upload for large recordings |
-| Gemini structured output returns invalid JSON | `laravel/ai` handles retries internally; add defensive validation in `TutorProcessor` |
-| Gemini prompt injection via user audio | System prompt is server-side only; user content is binary audio, not text |
-| AI response too long for TTS | Prompt instructs Gemini to keep responses ≤ 3 sentences; VOICE-03 caps at 500 chars |
-| `agent_conversations` table grows unbounded | Schedule `php artisan model:prune` on `AgentConversation` (30-day TTL) in DATA-01 |
-| Daily reset edge case at midnight | Use `whereDate('created_at', today())` — server timezone set via `APP_TIMEZONE` in `.env` |
-| `nativephp/mobile` + Laravel 13 queue compatibility | On device, queue uses SQLite (`database` driver) — no Valkey/Redis dependency |
+| Audio file > 20 MB inline limit                        | Throw descriptive exception; implement Gemini File API upload for large recordings |
+| Gemini structured output returns invalid JSON          | `laravel/ai` handles retries internally; add defensive validation in `TutorProcessor` |
+| Gemini prompt injection via user audio                 | System prompt is server-side only; user content is binary audio, not text |
+| AI response too long for TTS                           | Prompt instructs Gemini to keep responses ≤ 3 sentences; VOICE-03 caps at 500 chars |
+| `agent_conversations` table grows unbounded            | Schedule `php artisan model:prune` on `AgentConversation` (30-day TTL) in DATA-01 |
+| Daily reset edge case at midnight                      | Use `whereDate('created_at', today())` — server timezone set via `APP_TIMEZONE` in `.env` |
+ `nativephp/mobile` + Laravel 13 queue compatibility     On device, queue uses SQLite (`database` driver) — no Valkey/Redis dependency 
     $table->id();
     $table->foreignId('user_id')->constrained()->cascadeOnDelete();
     $table->string('title')->nullable(); // Auto-generated from first exchange

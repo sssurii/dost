@@ -58,9 +58,11 @@
 - **Latest stable:** `3.0.4`
 - **PHP requirement:** `^8.3`
 
-**⚠️ Note:** `nativephp/mobile` v3.0.4 declares `illuminate/contracts ^10.0|^11.0|^12.0`. Laravel 13 is not officially supported.
+**⚠️ Previously blocked:** `nativephp/mobile` v3.0.4 declared `illuminate/contracts ^10.0|^11.0|^12.0`. Laravel 13 was not supported.
 
-> **Resolution:** Laravel 12 is confirmed (Q3b). All compatibility risk is eliminated. `laravel/ai` v0.3.2 and `prism-php/prism` v0.99.x both support Laravel 12.
+> **Resolution (March 2026):** NativePHP Mobile 3.x released a new tag adding `illuminate/contracts ^13.x` support. Laravel 13 is now confirmed (Q3b updated). See: https://github.com/NativePHP/mobile-air/blob/main/composer.json
+
+> **Status:** Laravel 13 is confirmed (Q3b). All compatibility risk is eliminated. `laravel/ai` v0.3.2 and `prism-php/prism` v0.99.x both support Laravel 13.
 
 ---
 
@@ -155,15 +157,22 @@ It includes all PSR-12 rules plus additional Laravel-specific conventions (trail
 
 ---
 
-### Q3b — Laravel 12 vs 13: Owner Decision ✅ RESOLVED
+### Q3b — Laravel 12 vs 13: Owner Decision ✅ RESOLVED (UPDATED March 2026)
 
-**Decision: Use Laravel 12.**
+**Decision: Use Laravel 13.** *(Originally Laravel 12 — updated after NativePHP 3.x compatibility confirmed)*
 
-`nativephp/mobile` v3.0.4 declares `illuminate/contracts ^10.0|^11.0|^12.0` — it does **not** include `^13.0`. Laravel 12 has full, zero-risk compatibility.
+**Original blocker:** `nativephp/mobile` v3.0.4 declared `illuminate/contracts ^10.0|^11.0|^12.0` — did **not** include `^13.0`.
 
-All other dependencies (`laravel/ai` v0.3.2, `prism-php/prism` v0.99.x, Livewire 3, Reverb) support Laravel 12.
+**Resolution (March 2026):** NativePHP Mobile 3.x released a new tag that adds `illuminate/contracts ^13.x` support.
+Verified at: https://github.com/NativePHP/mobile-air/blob/main/composer.json
 
-**All plan files now target Laravel 12.**
+Since no Laravel code had been written yet, the upgrade had **zero migration cost** — we bootstrapped directly with `laravel/laravel:^13.0`.
+
+**Actual installed version: Laravel Framework 13.1.1**
+
+All other dependencies (`laravel/ai` v0.3.2, `prism-php/prism` v0.99.x, Livewire 3, Reverb) support Laravel 13.
+
+**All plan files now target Laravel 13.**
 
 ---
 
@@ -203,8 +212,8 @@ SQLite runs on-device as a file-based database with zero server process. NativeP
 |---|----------|--------|----------|
 | Q1 | Which Laravel AI SDK? | ✅ `laravel/ai` v0.3.2 | Resolved |
 | Q2 | TTS provider? | ✅ Web Speech API (free MVP) | Resolved |
-| Q3 | NativePHP v3 package name? | ✅ `nativephp/mobile` ⚠️ L12 only | Resolved |
-| Q3b | Laravel 12 vs 13 — final decision? | ✅ Laravel 12 confirmed | Resolved |
+| Q3 | NativePHP v3 package name? | ✅ `nativephp/mobile` — now supports L13 | Resolved |
+| Q3b | Laravel 12 vs 13 — final decision? | ✅ **Laravel 13 confirmed** (March 2026) | Resolved |
 | Q4 | DB rows after cleanup? | ✅ Option C (keep row, null path) | Resolved |
 | Q5 | Gemini: AI Studio vs Vertex? | ✅ Google AI Studio key | Resolved |
 | Q6 | Missing UI-01 ticket? | 🔵 Deferred | Low |

@@ -23,7 +23,7 @@ Bootstrap the Laravel app as an Android application using **NativePHP Mobile (Ai
 | **PHP requirement** | `^8.3` |
 | **microphone plugin** | `nativephp/mobile-microphone` (v1.0.0) |
 
-> **Laravel 12 confirmed (Q3b resolved):** `nativephp/mobile` v3.0.4 declares `illuminate/contracts ^10|^11|^12`. Laravel 12 is fully supported with zero compatibility risk.
+> **Laravel 13 confirmed (Q3b resolved):** `nativephp/mobile` v3 updated its tag in March 2026 to declare `illuminate/contracts ^10|^11|^12|^13`. Laravel 13 is fully supported — installed version: **13.1.1**.
 
 ---
 
