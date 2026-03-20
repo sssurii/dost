@@ -11,7 +11,7 @@
 
 ### Q1 — Laravel AI SDK: Which package? ✅ RESOLVED
 
-**Answer:** Use **`laravel/ai`** — the official Laravel 13 AI SDK.
+**Answer:** Use **`laravel/ai`** — the official Laravel AI SDK.
 
 | Detail | Value |
 |--------|-------|
@@ -58,19 +58,9 @@
 - **Latest stable:** `3.0.4`
 - **PHP requirement:** `^8.3`
 
-**⚠️ CRITICAL COMPATIBILITY WARNING:**  
-`nativephp/mobile` v3.0.4 declares `illuminate/contracts: ^10.0|^11.0|^12.0` — does **NOT** include `^13.0`.  
-The blueprint specifies **Laravel 13.x**. This creates a potential compatibility conflict.
+**⚠️ Note:** `nativephp/mobile` v3.0.4 declares `illuminate/contracts ^10.0|^11.0|^12.0`. Laravel 13 is not officially supported.
 
-**Options (needs owner decision — see Q3b below):**
-
-| Option | Risk | Recommendation |
-|--------|------|----------------|
-| Use **Laravel 12** | Low — fully supported | ✅ Safest for MVP |
-| Use Laravel 13 + `--ignore-platform-reqs` | Medium — test first | 🔶 Verify in R&D-01 |
-| Use `dev-main` of nativephp/mobile | High — unstable | ❌ Not for production |
-
-> **Plans now reference Laravel 12 as the default** pending owner decision. `laravel/ai` v0.3.2 and `prism-php/prism` v0.99.x both support Laravel 12 and 13.
+> **Resolution:** Laravel 12 is confirmed (Q3b). All compatibility risk is eliminated. `laravel/ai` v0.3.2 and `prism-php/prism` v0.99.x both support Laravel 12.
 
 ---
 
@@ -128,7 +118,7 @@ Future: may switch to persistent conversation per level or per week.
 
 **Change:** Replace `redis:7` with `valkey/valkey:8` in `docker-compose.yml`. Zero Laravel code changes.
 
-> **For NativePHP device-local (Option A from Q16):** Use `database` queue driver (SQLite-backed). Valkey only needed for server-side deployment.
+> **For NativePHP device-local (Option A — confirmed in Q16):** Use `database` queue driver (SQLite-backed). Valkey only needed for a future server-side deployment (Option B).
 
 ---
 
@@ -157,58 +147,42 @@ It includes all PSR-12 rules plus additional Laravel-specific conventions (trail
 
 **Decision:** Reverb for dev/MVP. Consider Pusher Sandbox for a managed small beta. Re-evaluate at scale.
 
-> **Note (Q16 dependency):** If using device-local NativePHP architecture (Option A in Q16), Reverb runs as part of the on-device Laravel server. No separate Reverb infrastructure needed.
+> **Note (Q16 — resolved):** The confirmed architecture is device-local (Option A). On the Android device, `BROADCAST_CONNECTION=log` is set — no Reverb runs on-device for MVP. Reverb runs only in the Docker dev environment.
 
 ---
 
-## 🔴 Open Blocking Questions
+## ✅ Resolved — Previously Blocking
 
 ---
 
-### Q3b — Laravel 12 vs 13: Owner Decision Needed [Blocks: INF-01]
+### Q3b — Laravel 12 vs 13: Owner Decision ✅ RESOLVED
 
-**Context:** `nativephp/mobile` v3.0.4 only officially supports Laravel 12 (`illuminate/contracts ^10|^11|^12`).  
-The blueprint says Laravel 13.x.
+**Decision: Use Laravel 12.**
 
-**Decision for owner:**
-- **(A) Downgrade to Laravel 12** — fully supported, zero compatibility risk ✅ Recommended
-- **(B) Proceed with Laravel 13** — test with `--ignore-platform-reqs` in R&D-01
+`nativephp/mobile` v3.0.4 declares `illuminate/contracts ^10.0|^11.0|^12.0` — it does **not** include `^13.0`. Laravel 12 has full, zero-risk compatibility.
 
-> All other dependencies (`laravel/ai` v0.3.2, `prism-php/prism` v0.99.x) support both Laravel 12 and 13.
+All other dependencies (`laravel/ai` v0.3.2, `prism-php/prism` v0.99.x, Livewire 3, Reverb) support Laravel 12.
+
+**All plan files now target Laravel 12.**
 
 ---
 
-### Q16 — Database Architecture for NativePHP Mobile [Blocks: INF-01, MOB-01]
+### Q16 — Database Architecture for NativePHP Mobile ✅ RESOLVED
 
-**Context:** NativePHP Mobile runs the **entire Laravel app on the device** (not a remote API server). This means the database must be accessible on the device.
+**Decision: Option A — Device-local SQLite (as recommended by NativePHP Mobile docs).**
 
-**SQLite (NativePHP recommendation):**
-- File-based, ships with PHP, no server process
-- Works perfectly on Android
-- Laravel supports it natively
+SQLite runs on-device as a file-based database with zero server process. NativePHP Mobile explicitly recommends this approach and manages the SQLite file path automatically. All Laravel migrations, Eloquent models, and queries work identically on SQLite — no code changes needed versus the PostgreSQL dev environment.
 
-**PostgreSQL:**
-- Requires a running server process → not practical on-device
-- Only viable if the app connects to a **remote** Laravel server
+**What this means for the build:**
 
-**Two architecture options:**
+| Environment | Database | Queue | Broadcast |
+|-------------|----------|-------|-----------|
+| Docker dev | PostgreSQL 16 | `database` (Valkey optional) | Reverb |
+| Android device | SQLite (on-device) | `database` (SQLite `jobs` table) | `log` (no Reverb on-device for MVP) |
 
-| | Option A: Device-Local | Option B: Hybrid (Remote Server) |
-|-|----------------------|----------------------------------|
-| **Database** | SQLite (on device) | PostgreSQL (on server) |
-| **Queue** | `database` (SQLite) or `sync` | Redis/Valkey |
-| **Reverb** | Runs on device | Runs on server |
-| **AI calls** | Device → Gemini API directly | Server → Gemini API |
-| **Offline** | ✅ Capable | ❌ Needs internet |
-| **Infra** | None needed | Server required |
-| **Complexity** | Low | High |
+**Queue on-device:** `QUEUE_CONNECTION=database` — the `jobs` table lives in SQLite. A queue worker runs as a background process started by `NativeAppServiceProvider` (documented in MOB-01 and VOICE-03).
 
-**Questions for owner:**
-1. Is offline capability important for MVP?
-2. Should user data be centralised on a server?
-3. Do you have/want a backend server?
-
-> **Recommendation: Option A (device-local, SQLite)**. Simplest path, no server to maintain. Aligns with NativePHP Mobile's design intent. Can migrate to Option B if needed. **Plans will be updated for SQLite-first with a PostgreSQL upgrade path.**
+**Hybrid Option B preserved:** The plans retain all documentation for a future hybrid server architecture (centralised PostgreSQL + Reverb). This path can be adopted later without structural rework. See MOB-01 Section 3 for the SQLite ↔ PostgreSQL migration note.
 
 ---
 
@@ -230,7 +204,7 @@ The blueprint says Laravel 13.x.
 | Q1 | Which Laravel AI SDK? | ✅ `laravel/ai` v0.3.2 | Resolved |
 | Q2 | TTS provider? | ✅ Web Speech API (free MVP) | Resolved |
 | Q3 | NativePHP v3 package name? | ✅ `nativephp/mobile` ⚠️ L12 only | Resolved |
-| Q3b | Laravel 12 vs 13 — final decision? | 🔴 BLOCKING — owner needed | High |
+| Q3b | Laravel 12 vs 13 — final decision? | ✅ Laravel 12 confirmed | Resolved |
 | Q4 | DB rows after cleanup? | ✅ Option C (keep row, null path) | Resolved |
 | Q5 | Gemini: AI Studio vs Vertex? | ✅ Google AI Studio key | Resolved |
 | Q6 | Missing UI-01 ticket? | 🔵 Deferred | Low |
@@ -243,5 +217,5 @@ The blueprint says Laravel 13.x.
 | Q13 | Android bundle ID? | 🔵 Placeholder OK | Low |
 | Q14 | Brand colour scheme? | 🔵 Design scheme coming | Low |
 | Q15 | Reverb vs Pusher? | ✅ Reverb for MVP | Resolved |
-| Q16 | SQLite vs PostgreSQL architecture? | 🔴 BLOCKING — owner needed | High |
+| Q16 | SQLite vs PostgreSQL architecture? | ✅ Option A — SQLite device-local | Resolved |
 |--------|---------|--------|

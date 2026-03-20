@@ -2,7 +2,7 @@
 
 **Project:** Dost — AI Voice Tutor for Indian Learners  
 **Last updated:** March 2026  
-**Status:** ⚠️ 2 blocking decisions needed before starting Phase 1 (see Section 3)
+**Status:** ✅ All architectural decisions confirmed — ready to start Phase 1
 
 ---
 
@@ -14,25 +14,23 @@ Core loop: User holds a button → speaks → releases → AI (Gemini) listens a
 **The key insight:** The app never corrects grammar. It only encourages. Users speak more because they feel safe.
 
 **Platform:** Android (NativePHP Mobile — Laravel app runs on-device)  
-**Stack:** Laravel 12/13 · NativePHP Mobile v3 · Livewire 3 · Tailwind CSS · Gemini 2.5 Flash via `laravel/ai` · SQLite (device) / PostgreSQL (dev) · Reverb
+**Stack:** Laravel 12 · NativePHP Mobile v3 · Livewire 3 · Tailwind CSS · Gemini 2.5 Flash via `laravel/ai` · SQLite (device) / PostgreSQL (dev) · Reverb
 
 ---
 
-## 2. Two Decisions Needed Before Starting
+## 2. Confirmed Architectural Decisions
 
-> **These are blocking. Resolve them before touching a keyboard.**
+> Both previously blocking decisions are now resolved. Development can start.
 
-| # | Decision | Options | Recommendation |
-|---|----------|---------|----------------|
-| **Q3b** | Laravel version | 12 (NativePHP confirmed) or 13 (untested) | **Use Laravel 12** |
-| **Q16** | App architecture | A: Device-local (SQLite, no server) or B: Hybrid (remote server, PostgreSQL) | **Option A (device-local)** |
+| # | Decision | Confirmed Choice | Notes |
+|---|----------|-----------------|-------|
+| **Q3b** | Laravel version | **Laravel 12** | `nativephp/mobile` v3 supports `illuminate/contracts ^10\|^11\|^12` — Laravel 12 is fully confirmed |
+| **Q16** | App architecture | **Option A — Device-local (SQLite)** | NativePHP Mobile recommended architecture; no server infra needed for MVP. Hybrid Option B preserved in plans for future migration |
 
-**Why it matters:**  
-`nativephp/mobile` v3 only declares `illuminate/contracts ^10\|^11\|^12`. Laravel 13 compatibility is unverified.  
-For Option A (recommended), the database is SQLite on-device — no infra needed, offline-capable.  
-For Option B, you need a server, PostgreSQL, and a different architecture pattern.
+**Q3b rationale:** `nativephp/mobile` v3.0.4 only officially supports up to Laravel 12. Using Laravel 12 avoids any compatibility risk.  
+**Q16 rationale:** SQLite runs on-device with zero infra overhead. NativePHP Mobile explicitly recommends this approach. A hybrid PostgreSQL server path remains documented in `MOB-01` if requirements change later.
 
-**See:** `plan/QUESTIONS.md` → Q3b and Q16 for full detail.
+**See:** `plan/QUESTIONS.md` → Q3b and Q16 for full resolved detail.
 
 ---
 
@@ -221,7 +219,7 @@ GEMINI_API_KEY=your-key-here
 | Queue (Dev/Android) | `database` driver |
 | Queue (Production) | Valkey 8 (open-source Redis fork) |
 | NativePHP package | `nativephp/mobile ^3.0` (GitHub: mobile-air) |
-| Laravel version | **12** (NativePHP-confirmed) — pending Q3b decision |
+| Laravel version | **12** (NativePHP-confirmed) ✅ |
 | PHPStan | Level 5 |
 | Pint preset | `laravel` (PSR-12 superset) |
 | WebSockets | Laravel Reverb (MVP) |

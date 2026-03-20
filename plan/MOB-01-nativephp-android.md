@@ -23,24 +23,22 @@ Bootstrap the Laravel app as an Android application using **NativePHP Mobile (Ai
 | **PHP requirement** | `^8.3` |
 | **microphone plugin** | `nativephp/mobile-microphone` (v1.0.0) |
 
-> **⚠️ Laravel Compatibility (Q3b):** `nativephp/mobile` v3.0.4 only declares `illuminate/contracts ^10|^11|^12`.  
-> If the project uses **Laravel 13**, install with `--ignore-platform-reqs` and verify in R&D-01.  
-> **Recommended:** Use **Laravel 12** for full compatibility. Pending owner decision in QUESTIONS.md Q3b.
+> **Laravel 12 confirmed (Q3b resolved):** `nativephp/mobile` v3.0.4 declares `illuminate/contracts ^10|^11|^12`. Laravel 12 is fully supported with zero compatibility risk.
 
 ---
 
-## 3. Database Decision for Android Build (Q16)
+## 3. Database Decision for Android Build (Q16 ✅ Resolved)
 
 NativePHP Mobile runs the **entire Laravel app on the device**. The database must be on-device too.
 
-**SQLite is the correct database for the Android build:**
+**SQLite is confirmed as the database for the Android build:**
 - File-based, no server process, ships with PHP
 - Fully supported by Laravel (migrations, Eloquent — all work unchanged)
-- NativePHP stores the SQLite file in the app's private storage
+- NativePHP Mobile recommends SQLite and manages the file path automatically
 
-**PostgreSQL is the Dev Docker environment only** (INF-01). The Android build switches to SQLite via environment config.
+**PostgreSQL is used in the Docker dev environment only** (INF-01). The Android build switches to SQLite via `.env.mobile`.
 
-Step 6 below configures the SQLite environment for the native build.
+> **Future hybrid path:** If requirements later call for centralised user data (Option B architecture), the app can connect to a remote Laravel server backed by PostgreSQL. The SQLite ↔ PostgreSQL migration requires only `.env` changes — no model or migration code changes. This path is preserved in the plans but not built for MVP.
 
 ---
 
