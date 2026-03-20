@@ -1,0 +1,130 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "laravel/laravel",
+    "type": "project",
+    "description": "The skeleton application for the Laravel framework.",
+    "keywords": ["laravel", "framework"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.0",
+        "laravel/mcp": "^0.6.3",
+        "laravel/reverb": "^1.8",
+        "laravel/tinker": "^3.0"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.9",
+        "laravel/boost": "^2.3",
+        "laravel/pail": "^1.2.5",
+        "laravel/pint": "^1.27",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.6",
+        "pdepend/pdepend": "3.x-dev@dev",
+        "pestphp/pest": "^4.4",
+        "phpmd/phpmd": "3.x-dev@dev",
+        "phpunit/phpunit": "^12.5.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": [
+            "@php artisan config:clear",
+            "@php artisan test --parallel --coverage-text"
+        ],
+        "pint": [
+            "./vendor/bin/pint"
+        ],
+        "pint:check": [
+            "./vendor/bin/pint --test"
+        ],
+        "analyze": [
+            "./vendor/bin/phpstan analyse --memory-limit=512M"
+        ],
+        "mess": [
+            "./vendor/bin/phpmd analyze --format=text --ruleset=phpmd.xml app config database routes"
+        ],
+        "check": [
+            "@pint:check",
+            "@analyze",
+            "@mess",
+            "@test"
+        ],
+        "fix": [
+            "@pint"
+        ],
+        "hooks:install": [
+            "cp hooks/pre-commit .git/hooks/pre-commit",
+            "chmod +x .git/hooks/pre-commit",
+            "@php -r \"echo '✓ Git hooks installed.' . PHP_EOL;\""
+        ],
+        "setup": [
+            "composer install",
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php artisan key:generate",
+            "@php artisan migrate --force",
+            "npm install",
+            "npm run build",
+            "@hooks:install"
+        ],
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+        ],
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@php artisan boost:update --ansi"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan migrate --graceful --ansi"
+        ],
+        "pre-package-uninstall": [
+            "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ]
+    },
+    "scripts-descriptions": {
+        "test":       "Run all Pest tests with parallel execution and coverage",
+        "pint":       "Fix code style with Laravel Pint",
+        "pint:check": "Check code style without fixing (CI-safe)",
+        "analyze":    "Run Larastan static analysis at Level 5",
+        "mess":       "Run PHPMD mess detection",
+        "check":      "Full quality suite: style + analysis + mess + tests",
+        "hooks:install": "Copy hooks/pre-commit into .git/hooks and make it executable",
+        "fix":        "Fix all auto-fixable code style issues"
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

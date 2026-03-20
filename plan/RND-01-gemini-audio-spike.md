@@ -174,7 +174,7 @@ mkdir -p storage/app/audio-spike
 ### Step 4 — Run the Spike
 
 ```bash
-docker compose exec laravel.test php scripts/audio-spike.php
+docker compose exec app php scripts/audio-spike.php
 ```
 
 ### Step 5 — Latency Measurement
@@ -200,7 +200,7 @@ Expected latency targets:
 composer require spatie/laravel-ffmpeg
 
 # Install ffmpeg in Docker container
-docker compose exec laravel.test bash
+docker compose exec app bash
 apt-get install -y ffmpeg
 ```
 

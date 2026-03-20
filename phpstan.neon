@@ -1,0 +1,20 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    # Level 5 — as specified in blueprint ("Level 5+"). Q12 Resolved.
+    level: 5
+
+    paths:
+        - app
+        - config
+        - database
+        - routes
+
+    excludePaths:
+        - vendor
+
+    # Do not fail on declared-but-unmatched ignore patterns (clean project = no current violations)
+    # Add specific ignoreErrors entries here as real violations are encountered.
+    reportUnmatchedIgnoredErrors: false

@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# Dost pre-commit hook — runs the full quality suite inside the Docker container.
+#
+# Install:  cp hooks/pre-commit .git/hooks/pre-commit  (done automatically by composer setup)
+# Bypass:   git commit --no-verify
+
+echo ""
+echo "┌──────────────────────────────────────────────┐"
+echo "│   Dost — pre-commit quality check            │"
+echo "│   Running inside dost-app container...       │"
+echo "└──────────────────────────────────────────────┘"
+echo ""
+
+# ── 1. Docker available? ──────────────────────────────────────────────────────
+if ! command -v docker > /dev/null 2>&1; then
+    echo "✗ Docker not found on PATH."
+    echo "  Install Docker or skip with: git commit --no-verify"
+    exit 1
+fi
+
+# ── 2. Container running? ─────────────────────────────────────────────────────
+if ! docker compose ps app --status running --quiet 2>/dev/null | grep -q .; then
+    echo "✗ Container 'dost-app' is not running."
+    echo "  Start it:  docker compose up -d"
+    echo "  Or skip:   git commit --no-verify"
+    exit 1
+fi
+
+# ── 3. Run full quality suite (pint → larastan → phpmd → pest) ───────────────
+# -T disables pseudo-TTY — required for non-interactive use inside git hooks.
+docker compose exec -T app composer check
+STATUS=$?
+
+echo ""
+if [ $STATUS -ne 0 ]; then
+    echo "✗ Quality checks failed — commit blocked."
+    echo "  Fix the issues above, then commit again."
+    echo "  To inspect:  docker compose exec app composer check"
+    echo "  To skip:     git commit --no-verify"
+    exit 1
+fi
+
+echo "✓ All checks passed — proceeding with commit."
+exit 0
+

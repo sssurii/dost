@@ -36,8 +36,8 @@ All tools are wired to `composer scripts` so a single `composer check` command e
 ### Step 1 — Install Packages
 
 ```bash
-# Run inside the laravel.test container
-docker compose exec laravel.test bash
+# Run inside the app container
+docker compose exec app bash
 
 # Pest (dev dependency)
 composer require pestphp/pest --dev --with-all-dependencies

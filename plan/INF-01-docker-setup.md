@@ -37,7 +37,7 @@ Provision a fully containerised, reproducible dev environment using Docker Compo
 │  Gateway: 15.15.0.1                                     │
 │                                                         │
 │  ┌──────────────┐   ┌──────────────┐  ┌─────────────┐  │
-│  │ laravel.test │   │   postgres   │  │   reverb    │  │
+│  │ app │   │   postgres   │  │   reverb    │  │
 │  │  (PHP 8.3)   │──▶│  (PG 16)     │  │  (ws:8080)  │  │
 │  │  :80, :443   │   │  :5432       │  │  :8080      │  │
 │  │  IP:15.15.0.2│   │  IP:15.15.0.3│  │ IP:15.15.0.4│  │
@@ -74,14 +74,14 @@ name: dost
 services:
 
   # ─── Application (PHP-FPM + Nginx or Caddy) ─────────────────
-  laravel.test:
+  app:
     build:
       context: ./docker/8.3
       dockerfile: Dockerfile
       args:
         WWWGROUP: "${WWWGROUP:-1000}"
     image: dost-app
-    container_name: dost_app
+    container_name: dost-app
     restart: unless-stopped
     ports:
       - "${APP_PORT:-80}:80"
@@ -106,7 +106,7 @@ services:
   # ─── PostgreSQL 16 ──────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: dost_postgres
+    container_name: dost-postgres
     restart: unless-stopped
     ports:
       - "${DB_PORT:-5432}:5432"
@@ -128,7 +128,7 @@ services:
   # ─── Laravel Reverb ─────────────────────────────────────────
   reverb:
     image: dost-app  # reuse same app image
-    container_name: dost_reverb
+    container_name: dost-reverb
     restart: unless-stopped
     command: php artisan reverb:start --host=0.0.0.0 --port=8080 --debug
     ports:
@@ -144,7 +144,7 @@ services:
       app-network:
         ipv4_address: 15.15.0.4
     depends_on:
-      - laravel.test
+      - app
 
   # ─── Valkey (open-source Redis replacement) ─────────────────
   # Used for queue workers when running server-side (Option B from Q16).
@@ -152,7 +152,7 @@ services:
   # Valkey = Linux Foundation Redis fork, 100% API-compatible, BSD-3-Clause licensed.
   valkey:
     image: valkey/valkey:8-alpine
-    container_name: dost_valkey
+    container_name: dost-valkey
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -346,7 +346,7 @@ VITE_REVERB_SCHEME="${REVERB_SCHEME}"
 ### Step 6 — Install Laravel Reverb
 
 ```bash
-# Inside container: docker compose exec laravel.test bash
+# Inside container: docker compose exec app bash
 composer require laravel/reverb
 php artisan reverb:install
 ```
@@ -359,23 +359,23 @@ docker compose build --no-cache
 docker compose up -d
 
 # Generate key
-docker compose exec laravel.test php artisan key:generate
+docker compose exec app php artisan key:generate
 
 # Run migrations
-docker compose exec laravel.test php artisan migrate
+docker compose exec app php artisan migrate
 
 # Verify gateway connectivity
-docker compose exec laravel.test ping -c 2 15.15.0.1
+docker compose exec app ping -c 2 15.15.0.1
 ```
 
 ### Step 8 — Storage Setup
 
 ```bash
-docker compose exec laravel.test php artisan storage:link
+docker compose exec app php artisan storage:link
 
 # Create recordings folder structure
-docker compose exec laravel.test bash -c "mkdir -p storage/app/public/recordings"
-docker compose exec laravel.test bash -c "echo '*\n!.gitignore' > storage/app/public/recordings/.gitignore"
+docker compose exec app bash -c "mkdir -p storage/app/public/recordings"
+docker compose exec app bash -c "echo '*\n!.gitignore' > storage/app/public/recordings/.gitignore"
 ```
 
 ---
@@ -405,10 +405,10 @@ dost/
 
 - [ ] `docker compose ps` — all 3 containers show `running`
 - [ ] `curl http://localhost` — returns Laravel welcome page (HTTP 200)
-- [ ] `docker compose exec laravel.test php artisan migrate` — runs without error
-- [ ] `docker compose exec laravel.test ping -c 2 15.15.0.1` — 0% packet loss
-- [ ] `docker compose exec laravel.test php artisan reverb:start --test` — connects OK
-- [ ] `docker compose exec laravel.test php artisan tinker` → `DB::connection()->getPDO()` — no exception
+- [ ] `docker compose exec app php artisan migrate` — runs without error
+- [ ] `docker compose exec app ping -c 2 15.15.0.1` — 0% packet loss
+- [ ] `docker compose exec app php artisan reverb:start --test` — connects OK
+- [ ] `docker compose exec app php artisan tinker` → `DB::connection()->getPDO()` — no exception
 - [ ] Reverb WebSocket reachable on ws://localhost:8080
 
 ---

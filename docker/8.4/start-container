@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# ── Align sail UID with host user (fixes file-permission issues on volumes) ───
+if [ -n "$WWWUSER" ]; then
+    usermod -u "$WWWUSER" sail
+fi
+
+# ── Ensure Laravel's writable directories are owned/accessible by sail ────────
+chown -R sail:sail /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || true
+chmod -R ug+rwX   /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || true
+
+# ── If a command is passed, run it as sail and exit immediately ───────────────
+# Used by: reverb container, one-off artisan commands, composer, npm, etc.
+if [ "$1" != "" ]; then
+    exec gosu sail "$@"
+fi
+
+# ── Web-server mode: configure PHP-FPM pool to run as sail ───────────────────
+sed -i "s/^user = www-data/user = sail/"  /etc/php/8.4/fpm/pool.d/www.conf
+sed -i "s/^group = www-data/group = sail/" /etc/php/8.4/fpm/pool.d/www.conf
+
+# ── Wait for PostgreSQL ───────────────────────────────────────────────────────
+echo "Waiting for PostgreSQL at ${DB_HOST:-postgres}:${DB_PORT:-5432}..."
+until pg_isready \
+    -h "${DB_HOST:-postgres}" \
+    -p "${DB_PORT:-5432}" \
+    -U "${DB_USERNAME:-dost_user}" 2>/dev/null; do
+    >&2 echo "  Postgres not ready — retrying in 2s..."
+    sleep 2
+done
+echo "PostgreSQL is ready."
+
+# ── Start supervisord (manages PHP-FPM + Apache) ─────────────────────────────
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+

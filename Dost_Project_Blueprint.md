@@ -40,7 +40,7 @@
 * **Details:**
     * Set up `docker-compose.yml`.
     * Define network `app-network` with subnet `15.15.0.0/16`.
-    * Containers: `laravel.test` (PHP 8.3/8.4), `postgres` (16+), `reverb`.
+    * Containers: `app` (PHP 8.3/8.4), `postgres` (16+), `reverb`.
     * Verify connectivity to gateway `15.15.0.1`.
 * **Complexity:** 2 | **Estimate:** 4h
 
@@ -135,5 +135,5 @@
 
 ## 4. Operational Guardrails (For the LLM)
 1.  **Latency:** Every decision must favor speed. Use local storage over S3 for the MVP.
-2.  **Formatting:** Use Tailwind's `v3` classes. Follow Laravel 12's functional Livewire patterns.
+2.  **Formatting:** Use Tailwind's `v3` classes. Follow Laravel 13's functional Livewire patterns.
 3.  **Safety:** Ensure the AI agent does not generate discouraging content.

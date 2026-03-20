@@ -14,7 +14,7 @@ Core loop: User holds a button → speaks → releases → AI (Gemini) listens a
 **The key insight:** The app never corrects grammar. It only encourages. Users speak more because they feel safe.
 
 **Platform:** Android (NativePHP Mobile — Laravel app runs on-device)  
-**Stack:** Laravel 12 · NativePHP Mobile v3 · Livewire 3 · Tailwind CSS · Gemini 2.5 Flash via `laravel/ai` · SQLite (device) / PostgreSQL (dev) · Reverb
+**Stack:** Laravel 13 · NativePHP Mobile v3 · Livewire 3 · Tailwind CSS · Gemini 2.5 Flash via `laravel/ai` · SQLite (device) / PostgreSQL (dev) · Reverb
 
 ---
 
@@ -24,10 +24,10 @@ Core loop: User holds a button → speaks → releases → AI (Gemini) listens a
 
 | # | Decision | Confirmed Choice | Notes |
 |---|----------|-----------------|-------|
-| **Q3b** | Laravel version | **Laravel 12** | `nativephp/mobile` v3 supports `illuminate/contracts ^10\|^11\|^12` — Laravel 12 is fully confirmed |
+| **Q3b** | Laravel version | **Laravel 13** | NativePHP Mobile 3.x updated tag (March 2026) — now supports `illuminate/contracts ^13.x` — zero migration cost, bootstrapped directly on L13 |
 | **Q16** | App architecture | **Option A — Device-local (SQLite)** | NativePHP Mobile recommended architecture; no server infra needed for MVP. Hybrid Option B preserved in plans for future migration |
 
-**Q3b rationale:** `nativephp/mobile` v3.0.4 only officially supports up to Laravel 12. Using Laravel 12 avoids any compatibility risk.  
+**Q3b rationale:** NativePHP Mobile 3.x released an updated tag in March 2026 adding `illuminate/contracts ^13.x` support. Since no app code had been written, we bootstrapped directly with Laravel 13 (zero migration cost). Installed: **Laravel Framework 13.1.1**.  
 **Q16 rationale:** SQLite runs on-device with zero infra overhead. NativePHP Mobile explicitly recommends this approach. A hybrid PostgreSQL server path remains documented in `MOB-01` if requirements change later.
 
 **See:** `plan/QUESTIONS.md` → Q3b and Q16 for full resolved detail.
@@ -44,7 +44,7 @@ Core loop: User holds a button → speaks → releases → AI (Gemini) listens a
 | 2 | Code Quality Toolchain | `INF-02` | 2h | INF-01 | 🔲 Not started |
 | 3 | MCP Documentation Sync | `INF-03` | 3h | INF-01, INF-02 | 🔲 Not started |
 
-**Phase 1 goal:** `docker compose up -d` gives you a running Laravel 12 app with Postgres (dev), Reverb, PHPStan Level 5, Pest, and Pint all wired.
+**Phase 1 goal:** `docker compose up -d` gives you a running Laravel 13 app with Postgres (dev), Reverb, PHPStan Level 5, Pest, and Pint all wired.
 
 ---
 
@@ -107,35 +107,35 @@ Everything else (INF-02, INF-03, AUTH-01, DATA-01, UI-02) is important but not o
 > From zero to a running dev environment. Run in order.
 
 ```bash
-# 1. Create Laravel 12 project
-composer create-project laravel/laravel:^12.0 dost
+# 1. Create Laravel 13 project (inside Docker container)
+composer create-project laravel/laravel:^13.0 /tmp/laravel-new --no-interaction --prefer-dist
 cd dost
 
 # 2. Start Docker environment
 docker compose up -d
 
 # 3. Install laravel/ai SDK
-docker compose exec laravel.test composer require laravel/ai
-docker compose exec laravel.test php artisan vendor:publish --provider="Laravel\Ai\AiServiceProvider"
+docker compose exec app composer require laravel/ai
+docker compose exec app php artisan vendor:publish --provider="Laravel\Ai\AiServiceProvider"
 
 # 4. Run all migrations
-docker compose exec laravel.test php artisan migrate
+docker compose exec app php artisan migrate
 
 # 5. Create storage symlink + recordings directory
-docker compose exec laravel.test php artisan storage:link
-docker compose exec laravel.test mkdir -p storage/app/public/recordings
+docker compose exec app php artisan storage:link
+docker compose exec app mkdir -p storage/app/public/recordings
 
 # 6. Install NativePHP Mobile
-docker compose exec laravel.test composer require nativephp/mobile
-docker compose exec laravel.test php artisan native:install
+docker compose exec app composer require nativephp/mobile
+docker compose exec app php artisan native:install
 
 # 7. Start queue workers
-docker compose exec laravel.test php artisan queue:work --queue=ai,default &
+docker compose exec app php artisan queue:work --queue=ai,default &
 
 # 8. Verify everything is green
-docker compose exec laravel.test php artisan test
-docker compose exec laravel.test ./vendor/bin/pint --test
-docker compose exec laravel.test ./vendor/bin/phpstan analyse
+docker compose exec app php artisan test
+docker compose exec app ./vendor/bin/pint --test
+docker compose exec app ./vendor/bin/phpstan analyse
 ```
 
 ---

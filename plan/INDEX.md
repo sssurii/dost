@@ -27,6 +27,16 @@ plan/
 
 ---
 
+## Completed Tickets
+
+| Ticket | Title | Completed | Notes |
+|--------|-------|-----------|-------|
+| INF-01 | Dockerized Laravel 13.x Setup | March 2026 | Docker + PostgreSQL + Reverb + PHP 8.4 |
+| INF-02 | Code Quality Toolchain | March 2026 | Pint + Larastan L5 + PHPMD + Pest; `composer check` wired up |
+| INF-03 | MCP Documentation Sync | March 21, 2026 | context7 & docs/context/ dropped — Laravel Boost `search-docs` + instruction files (CLAUDE.md, AGENTS.md, GEMINI.md, .github/copilot-instructions.md) cover the need |
+
+---
+
 ## Ticket Dependency Graph
 
 ```
@@ -63,11 +73,11 @@ INF-01 (Docker)
 
 ### Phase 1: Infrastructure (7 tickets → 9h total)
 
-| Ticket | Title                         | Est. | Complexity |
-|--------|-------------------------------|------|-----------|
-| INF-01 | Dockerized Laravel 13.x Setup | 4h | 2 |
-| INF-02 | Code Quality Toolchain        | 2h | 1 |
-| INF-03 | MCP Documentation Sync        | 3h | 3 |
+| Ticket | Title                         | Est. | Complexity | Status |
+|--------|-------------------------------|------|-----------|--------|
+| INF-01 | Dockerized Laravel 13.x Setup | 4h | 2 | ✅ Done |
+| INF-02 | Code Quality Toolchain        | 2h | 1 | ✅ Done |
+| INF-03 | MCP Documentation Sync        | 3h | 3 | ✅ Done |
 
 **Phase 1 Goal:** A working Docker environment where all developers can run `docker compose up -d` and get a fully configured Laravel 13 app with Postgres, Reverb, and all quality tools wired up.
 
