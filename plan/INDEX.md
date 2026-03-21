@@ -206,11 +206,11 @@ AiAudioReady        → Livewire (via Reverb)     → UI plays audio
 ## Pending Questions
 
 See **[QUESTIONS.md](./QUESTIONS.md)** for all open questions.  
-**2 are still blocking** and need answers before Phase 1 begins:
+**There are no current blockers for Phase 2.** The previously blocking questions are resolved:
 1. **Q3b** — Laravel 12 vs 13? ✅ **Laravel 13 confirmed** — NativePHP Mobile 3.x released updated tag supporting `illuminate/contracts ^13.x` (March 2026)
-2. **Q16** — SQLite (device-local) vs PostgreSQL (remote server) architecture?
+2. **Q16** — SQLite (device-local) vs PostgreSQL (remote server) architecture? ✅ **Resolved in favor of device-local SQLite for Android**
 
-All other questions are resolved.
+All other questions are resolved or explicitly deferred.
 
 ---
 
@@ -224,4 +224,3 @@ All other questions are resolved.
 - **Conversation export** (user downloads their recordings as practice material)
 - **Multiple topics/modes** (Job Interview practice, Daily Conversation, etc.)
 - **Onboarding flow** (UX-01 ticket — deferred, see Q10)
-

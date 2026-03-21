@@ -1,8 +1,8 @@
 # Dost — Master Execution Plan
 
 **Project:** Dost — AI Voice Tutor for Indian Learners  
-**Last updated:** March 2026  
-**Status:** ✅ All architectural decisions confirmed — ready to start Phase 1
+**Last updated:** March 21, 2026  
+**Status:** ✅ Phase 1 complete — ready to start Phase 2
 
 ---
 
@@ -20,7 +20,7 @@ Core loop: User holds a button → speaks → releases → AI (Gemini) listens a
 
 ## 2. Confirmed Architectural Decisions
 
-> Both previously blocking decisions are now resolved. Development can start.
+> Both previously blocking decisions are resolved, and the Phase 1 infrastructure work is complete.
 
 | # | Decision | Confirmed Choice | Notes |
 |---|----------|-----------------|-------|
@@ -40,11 +40,11 @@ Core loop: User holds a button → speaks → releases → AI (Gemini) listens a
 
 | # | Ticket | File | Est. | Depends on | Status |
 |---|--------|------|------|-----------|--------|
-| 1 | Dockerized Laravel Setup | `INF-01` | 4h | Nothing | 🔲 Not started |
-| 2 | Code Quality Toolchain | `INF-02` | 2h | INF-01 | 🔲 Not started |
-| 3 | MCP Documentation Sync | `INF-03` | 3h | INF-01, INF-02 | 🔲 Not started |
+| 1 | Dockerized Laravel Setup | `INF-01` | 4h | Nothing | ✅ Done |
+| 2 | Code Quality Toolchain | `INF-02` | 2h | INF-01 | ✅ Done |
+| 3 | MCP Documentation Sync | `INF-03` | 3h | INF-01, INF-02 | ✅ Done |
 
-**Phase 1 goal:** `docker compose up -d` gives you a running Laravel 13 app with Postgres (dev), Reverb, PHPStan Level 5, Pest, and Pint all wired.
+**Phase 1 goal:** `docker compose up -d` gives you a running Laravel 13 app with Postgres (dev), Reverb, PHPStan Level 5, Pest, and Pint all wired. **Current state:** achieved.
 
 ---
 
@@ -83,6 +83,8 @@ Core loop: User holds a button → speaks → releases → AI (Gemini) listens a
 
 **Total: ~36 hours**
 
+**Current project state:** Infrastructure is in place, but application features have not started yet. The repo still contains the Laravel skeleton app plus the completed Docker / quality / MCP setup.
+
 ---
 
 ## 4. Critical Path
@@ -104,7 +106,7 @@ Everything else (INF-02, INF-03, AUTH-01, DATA-01, UI-02) is important but not o
 
 ## 5. Quick-Start Commands
 
-> From zero to a running dev environment. Run in order.
+> Baseline infrastructure is already in the repo. Use these as environment bootstrap commands, not as remaining project work.
 
 ```bash
 # 1. Create Laravel 13 project (inside Docker container)
@@ -219,7 +221,7 @@ GEMINI_API_KEY=your-key-here
 | Queue (Dev/Android) | `database` driver |
 | Queue (Production) | Valkey 8 (open-source Redis fork) |
 | NativePHP package | `nativephp/mobile ^3.0` (GitHub: mobile-air) |
-| Laravel version | **12** (NativePHP-confirmed) ✅ |
+| Laravel version | **13** (NativePHP 3.x-compatible tag confirmed) |
 | PHPStan | Level 5 |
 | Pint preset | `laravel` (PSR-12 superset) |
 | WebSockets | Laravel Reverb (MVP) |
@@ -257,4 +259,3 @@ GEMINI_API_KEY=your-key-here
 7. **Conversation export** — let users download their recordings
 8. **Multiple practice modes** — Job Interview, Daily Chat, etc.
 9. **Custom "Dost" voice** — ElevenLabs once brand identity is confirmed (via `laravel/ai`)
-
