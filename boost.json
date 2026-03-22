@@ -13,6 +13,9 @@
     "sail": false,
     "skills": [
         "mcp-development",
-        "pest-testing"
+        "livewire-development",
+        "volt-development",
+        "pest-testing",
+        "tailwindcss-development"
     ]
 }

@@ -34,6 +34,10 @@ plan/
 | INF-01 | Dockerized Laravel 13.x Setup | March 2026 | Docker + PostgreSQL + Reverb + PHP 8.4 |
 | INF-02 | Code Quality Toolchain | March 2026 | Pint + Larastan L5 + PHPMD + Pest; `composer check` wired up |
 | INF-03 | MCP Documentation Sync | March 21, 2026 | context7 & docs/context/ dropped — Laravel Boost `search-docs` + instruction files (CLAUDE.md, AGENTS.md, GEMINI.md, .github/copilot-instructions.md) cover the need |
+| MOB-01 | NativePHP Android Bootstrapping | March 21, 2026 | NativePHP + Microphone + Device plugins installed; `native:jump` working on physical device via WiFi; rsync added to Docker image; port 3000 exposed |
+| AUTH-01 | Mobile-Optimized Authentication | March 21, 2026 | Breeze + Livewire 4 + Volt installed; Tailwind v4 conflict resolved; dark warm mobile-first auth views; `audio_retention_days` + `RetentionDays` enum; 27 tests passing; `composer check` fully green |
+ RND-01  Gemini Audio Compatibility Spike  March 21, 2026  All three M4A MIME types accepted by Gemini 2.5 Flash; `audio/mp4` chosen; no FFmpeg needed; latency ~3.6s; `laravel/ai` installed; ADR-001 written 
+ VOICE-01  Hold-to-Speak Recording Logic  March 21, 2026  `recordings` table + `Recording` model + `RecordingStatus` enum; `RecordingButton` Livewire component; `RecordingFinished` event; `ProcessRecording` queued listener stub; 9 Pest tests passing; `composer check` green
 
 ---
 
@@ -85,10 +89,10 @@ INF-01 (Docker)
 
 ### Phase 2: Mobile & Auth (9h total)
 
-| Ticket | Title | Est. | Complexity |
-|--------|-------|------|-----------|
-| MOB-01 | NativePHP Android Bootstrapping | 6h | 4 |
-| AUTH-01 | Mobile-Optimized Auth | 3h | 2 |
+| Ticket | Title | Est. | Complexity | Status |
+|--------|-------|------|-----------|--------|
+| MOB-01 | NativePHP Android Bootstrapping | 6h | 4 | ✅ Done |
+| AUTH-01 | Mobile-Optimized Auth | 3h | 2 | ✅ Done |
 
 **Phase 2 Goal:** An Android APK that loads the Laravel app, displays a dark, warm, mobile-first login/register screen, and successfully authenticates users.
 
@@ -96,12 +100,12 @@ INF-01 (Docker)
 
 ### Phase 3: Voice Core (20h total)
 
-| Ticket | Title | Est. | Complexity |
-|--------|-------|------|-----------|
-| RND-01 | Gemini Audio Compatibility Spike | 5h | 5 |
-| VOICE-01 | Hold-to-Speak Recording Logic | 5h | 4 |
-| VOICE-02 | TutorAgent AI Integration | 6h | 4 |
-| VOICE-03 | AI Response & TTS Playback | 4h | 3 |
+| Ticket | Title | Est. | Complexity | Status |
+|--------|-------|------|-----------|--------|
+| RND-01 | Gemini Audio Compatibility Spike | 5h | 5 | ✅ Done |
+ VOICE-01  Hold-to-Speak Recording Logic  5h  4  ✅ Done 
+| VOICE-02 | TutorAgent AI Integration | 6h | 4 | |
+| VOICE-03 | AI Response & TTS Playback | 4h | 3 | |
 
 **Phase 3 Goal:** A working voice loop: User holds → records → releases → AI processes → voice plays back. The "soul" of the app.
 

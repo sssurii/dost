@@ -1,5 +1,8 @@
 # MOB-01: NativePHP Android Bootstrapping
 
+> **Status: ✅ COMPLETED — March 21, 2026**
+> NativePHP + Microphone + Device plugins installed. `native:jump` confirmed working on a physical Android device over WiFi.
+
 **Phase:** 2 — Mobile & Auth  
 **Complexity:** 4 | **Estimate:** 6h  
 **Depends on:** INF-01, INF-02  
