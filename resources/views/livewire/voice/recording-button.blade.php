@@ -134,21 +134,69 @@
     });
 
     $wire.on('play-ai-response', ({ audioUrl, text }) => {
-        const player = document.getElementById('ai-response-player');
         if (audioUrl) {
-            player.src = audioUrl;
-            player.play().catch(() => $wire.onPlaybackFinished());
-            player.onended = () => $wire.onPlaybackFinished();
+            playAudioFile(audioUrl, text);
         } else if (text) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-IN';
-            utterance.rate = 0.9;
-            utterance.onend = () => $wire.onPlaybackFinished();
-            window.speechSynthesis.speak(utterance);
+            speakWithWebSpeech(text);
         } else {
-            $wire.onPlaybackFinished();
+            $wire.call('onPlaybackFinished');
         }
     });
+
+    // ── Tier 1: Web Speech API ───────────────────────────────────────────────
+
+    function speakWithWebSpeech(text) {
+        if (!window.speechSynthesis) {
+            console.warn('[VOICE-03] Web Speech API unavailable — unblocking mic');
+            $wire.call('onPlaybackFinished');
+            return;
+        }
+
+        window.speechSynthesis.cancel();
+
+        const utterance   = new SpeechSynthesisUtterance(text);
+        utterance.lang    = 'en-IN';
+        utterance.rate    = 0.88;
+        utterance.pitch   = 1.05;
+        utterance.volume  = 1.0;
+        utterance.onend   = () => $wire.call('onPlaybackFinished');
+        utterance.onerror = (e) => {
+            console.error('[VOICE-03] speechSynthesis error:', e);
+            $wire.call('onPlaybackFinished');
+        };
+
+        function applyVoiceAndSpeak() {
+            const voices = window.speechSynthesis.getVoices();
+            const indianVoice = voices.find(
+                v => v.lang === 'en-IN' || v.name.toLowerCase().includes('india')
+            );
+            if (indianVoice) { utterance.voice = indianVoice; }
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Voices may load asynchronously on first call (Android WebView quirk)
+        if (window.speechSynthesis.getVoices().length > 0) {
+            applyVoiceAndSpeak();
+        } else {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.onvoiceschanged = null;
+                applyVoiceAndSpeak();
+            };
+        }
+    }
+
+    // ── Tier 2: Server-generated MP3 (laravel/ai OpenAI TTS upgrade) ────────
+
+    function playAudioFile(audioUrl, fallbackText) {
+        const player = document.getElementById('ai-response-player');
+        player.src   = audioUrl;
+        player.load();
+        player.onended = () => $wire.call('onPlaybackFinished');
+        player.play().catch((err) => {
+            console.warn('[VOICE-03] MP3 playback failed — falling back to Web Speech:', err);
+            fallbackText ? speakWithWebSpeech(fallbackText) : $wire.call('onPlaybackFinished');
+        });
+    }
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden && isRecording) {

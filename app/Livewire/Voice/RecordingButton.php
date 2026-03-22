@@ -72,23 +72,21 @@ class RecordingButton extends Component
 
     /**
      * Called via Reverb broadcast when AI processing completes (VOICE-02).
+     *
+     * Payload keys: recording_id, transcript, response_text, audio_url
+     *
+     * @param  array<string, mixed>  $event
      */
     #[On('echo-private:user.{userId},recording.completed')]
-    public function onAiResponseReady(int $recording_id): void
+    public function onAiResponseReady(array $event): void
     {
         $this->uiState = 'playing';
         $this->statusMessage = 'Dost is speaking...';
 
-        $recording = Recording::query()->find($recording_id);
-
-        if ($recording !== null) {
-            $this->dispatch('play-ai-response', [
-                'audioUrl' => $recording->ai_response_audio_path
-                    ? Storage::disk('public')->url($recording->ai_response_audio_path)
-                    : null,
-                'text' => $recording->ai_response_text,
-            ]);
-        }
+        $this->dispatch('play-ai-response',
+            text: $event['response_text'] ?? '',
+            audioUrl: $event['audio_url'] ?? null,
+        );
     }
 
     /**

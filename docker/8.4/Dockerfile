@@ -84,11 +84,11 @@ RUN userdel --remove ubuntu 2>/dev/null || true \
 RUN git config --system --add safe.directory /var/www/html
 
 # ── Config files ──────────────────────────────────────────────────────────────
-COPY apache.conf     /etc/apache2/sites-available/000-default.conf
-COPY php.ini         /etc/php/${PHP_VERSION}/fpm/conf.d/99-dost.ini
-COPY php.ini         /etc/php/${PHP_VERSION}/cli/conf.d/99-dost.ini
+COPY apache.conf      /etc/apache2/sites-available/000-default.conf
+COPY php.ini          /etc/php/${PHP_VERSION}/fpm/conf.d/99-dost.ini
+COPY php.ini          /etc/php/${PHP_VERSION}/cli/conf.d/99-dost.ini
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY start-container /usr/local/bin/start-container
+COPY start-container  /usr/local/bin/start-container
 RUN chmod +x /usr/local/bin/start-container
 
 EXPOSE 80 8080

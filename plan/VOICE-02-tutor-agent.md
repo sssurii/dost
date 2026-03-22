@@ -1,136 +1,108 @@
 # VOICE-02: TutorAgent AI Integration
-
-**Phase:** 3 — Voice Core  
-**Complexity:** 4 | **Estimate:** 6h  
-**Depends on:** VOICE-01 (Recording model + event), R&D-01 (audio format confirmed), INF-03 (`laravel/ai` SDK installed)  
+**Phase:** 3 — Voice Core
+**Complexity:** 4 | **Estimate:** 4h
+**Depends on:** VOICE-01 (Recording model + event), RND-01 (audio format confirmed), INF-03 (`laravel/ai` SDK installed)
 **Blocks:** VOICE-03 (needs AI text response to generate TTS audio)
-
+**Status:** ✅ Completed March 22, 2026
+> **Last updated:** 2026-03-22 — implementation complete; two plan deviations noted below.
 ---
-
 ## 1. Objective
-
-This is the **"Soul" of the app**. Build the `TutorAgent` that:
-1. Receives a `RecordingFinished` event
-2. Sends the audio file to `Gemini 2.5 Flash` via **`laravel/ai`** SDK
-3. Gets back a structured `{transcript, response}` output — no regex parsing needed
-4. Saves the response to the `Recording` model
-5. Broadcasts an `AiResponseReady` event for VOICE-03 / Livewire UI
-
-> **SDK:** `laravel/ai` v0.3.2 (official Laravel AI SDK, wraps `prism-php/prism` internally).  
-> **Conversation history** is managed by the SDK's built-in `agent_conversations` / `agent_conversation_messages` tables.  
-> **No custom `Conversation` or `Message` models are needed** — the SDK handles context windows.
-
+Build the **"Soul"** of Dost. Wire the voice pipeline so that:
+1. A `RecordingFinished` event triggers the `ProcessRecording` listener (already stubbed)
+2. The listener calls `TutorProcessor`, which sends the audio to Gemini 2.5 Flash via `laravel/ai`
+3. Gemini returns a typed `{transcript, response}` — no regex or JSON parsing needed
+4. The recording is saved as `completed` with both fields
+5. `AiResponseReady` is broadcast via Reverb → Livewire
+6. `GenerateTtsAudio` job is dispatched (stub for VOICE-03)
 ---
-
-## 2. The Tutor Persona
-
-The system prompt is the most critical piece of product design in this entire app.
-
-```
-Core Values:
-✅ Encouragement over correction
-✅ Indian English warmth and idioms ("yaar", "achha", "wah!", "bilkul")
-✅ Short responses — 2-3 sentences max (voice playback)
-✅ Always ends with a follow-up question to keep the conversation going
-✅ Responds to meaning and intent, never the words
-❌ Never corrects grammar, pronunciation, or word choice — EVER
-❌ Never says "That's wrong" or implies any error
-❌ No formal tutoring language
-```
-
+## 2. SDK Facts (confirmed against official docs + source)
+| Fact | Detail |
+|------|--------|
+| Agent namespace | `App\Ai\Agents` (lowercase `i`) |
+| Scaffold command | `php artisan make:agent TutorAgent --structured --no-interaction` |
+| Provider/model | PHP 8 attributes: `#[Provider(Lab::Gemini)]` + `#[Model('gemini-2.5-flash')]` |
+| Audio attachment | `Files\Audio::fromStorage($path, $disk)` — relative disk path, not absolute |
+| Structured response | Returns `StructuredAgentResponse` (implements `ArrayAccess`) → `$response['transcript']` |
+| Conversation start | `(new TutorAgent)->forUser($user)->prompt(...)` |
+| Conversation continue | `(new TutorAgent)->continue($conversationId, as: $user)->prompt(...)` — `as:` is named |
+| Conversation ID on response | `$response->conversationId` |
+| DB tables (SDK-owned) | `agent_conversations` — columns: `id, user_id, title, timestamps` (no `agent` column) |
+| Testing | `TutorAgent::fake()` auto-generates structured fake data matching the schema |
+| Test assertions | `TutorAgent::assertPrompted(fn($p) => $p->contains('...'))` |
+| Prevent stray prompts | `TutorAgent::fake()->preventStrayPrompts()` |
 ---
-
-## 3. Architecture Overview
-
+## 3. Architecture
 ```
 RecordingFinished Event
         │
         ▼
-ProcessRecording Listener (Queued on 'ai' queue)
+ProcessRecording Listener   ← already exists (stub only)
+  queue = 'ai', tries = 2, timeout = 30
         │
         ▼
-TutorProcessor Service
-    ├── Resolves today's conversation (daily-reset logic via RemembersConversations)
-    ├── Loads audio path from storage
-    ├── Calls (new TutorAgent)->forUser($user)->prompt(…, attachments: [Files\Audio::fromPath(…)])
-    └── Receives structured {transcript, response} — no parsing needed
+TutorProcessor::process(Recording $recording)
+  ├── $recording->markAsProcessing()
+  ├── resolveAgent($user)   ← today's conversation or new one
+  ├── $agent->prompt('Transcribe and respond as Dost.',
+  │       attachments: [Audio::fromStorage($recording->path, 'public')])
+  ├── $recording->markAsCompleted($response['transcript'], $response['response'])
+  └── return TutorResult
         │
         ▼
-Recording::markAsCompleted(transcript, response)
+AiResponseReady::dispatch($recording)   ← broadcast on private channel
         │
         ▼
-AiResponseReady Event (Broadcast → Reverb → Livewire)
-        │
-        ▼
-GenerateTtsAudio Job dispatched (→ VOICE-03)
+GenerateTtsAudio::dispatch($recording)  ← stub job, implemented in VOICE-03
 ```
-
 ---
-
-## 4. Step-by-Step Implementation
-
-### Step 1 — Install & Configure `laravel/ai`
-
-> If completed in INF-03 (MCP Docs), skip the install — just verify the env variable.
-
+## 4. Files to Create / Modify
+| Action | File | Notes |
+|--------|------|-------|
+| **Create** | `app/Ai/Agents/TutorAgent.php` | `make:agent --structured` then implement |
+| **Create** | `app/Services/Ai/TutorResult.php` | `readonly` value object |
+| **Create** | `app/Services/Ai/TutorProcessor.php` | `make:class` then implement |
+| **Create** | `app/Events/AiResponseReady.php` | `make:event` then implement |
+| **Create** | `app/Jobs/GenerateTtsAudio.php` | `make:job` stub only (VOICE-03) |
+| **Modify** | `app/Listeners/ProcessRecording.php` | Full implementation (stub exists) |
+| **Modify** | `bootstrap/app.php` | Register `RecordingFinished → ProcessRecording` |
+| **Create** | `tests/Feature/Voice/TutorProcessorTest.php` | Pest tests |
+---
+## 5. Implementation
+### Step 1 — Scaffold
 ```bash
-composer require laravel/ai
-
-php artisan vendor:publish --provider="Laravel\Ai\AiServiceProvider"
-
-# Runs migrations for agent_conversations + agent_conversation_messages tables
-php artisan migrate
+docker compose exec app php artisan make:agent TutorAgent --structured --no-interaction
+docker compose exec app php artisan make:event AiResponseReady --no-interaction
+docker compose exec app php artisan make:job GenerateTtsAudio --no-interaction
 ```
-
-Update `.env`:
-
-```dotenv
-GEMINI_API_KEY=your-google-ai-studio-key
-```
-
-Get your key at: https://aistudio.google.com → **"Get API key"** → free tier is sufficient for MVP.
-
-### Step 2 — Scaffold the TutorAgent
-
-```bash
-php artisan make:agent TutorAgent
-# Creates: app/AI/Agents/TutorAgent.php
-```
-
-### Step 3 — Implement the `TutorAgent` Class
-
+> `make:agent --structured` places the file at `app/Ai/Agents/TutorAgent.php`.
+---
+### Step 2 — `TutorAgent`
 ```php
 <?php
-// app/AI/Agents/TutorAgent.php
-
 declare(strict_types=1);
-
-namespace App\AI\Agents;
-
+namespace App\Ai\Agents;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Ai\Attributes\Model;
+use Laravel\Ai\Attributes\Provider;
+use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasStructuredOutput;
+use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
-use Laravel\Ai\RemembersConversations;
-
-final class TutorAgent implements Agent, HasStructuredOutput
+#[Provider(Lab::Gemini)]
+#[Model('gemini-2.5-flash')]
+final class TutorAgent implements Agent, Conversational, HasStructuredOutput
 {
     use Promptable;
     use RemembersConversations;
-
-    /**
-     * The complete system prompt — the "soul" of Dost.
-     * This is set server-side and cannot be overridden by user audio input.
-     */
     private const SYSTEM_PROMPT = <<<'PROMPT'
     You are Dost — a warm, encouraging English speaking partner for Indian learners.
-
     YOUR PERSONALITY:
     - You are like a supportive dost (friend) who happens to be great at English
     - You use Indian English naturally: "yaar", "achha", "wah!", "bilkul", "ek second"
     - You are enthusiastic and genuinely celebrate every attempt to speak
     - You keep things light, fun, and conversational
-
     YOUR RULES (follow strictly):
     1. NEVER correct grammar, pronunciation, or word choice — EVER
     2. NEVER say anything discouraging, even indirectly
@@ -139,27 +111,21 @@ final class TutorAgent implements Agent, HasStructuredOutput
     5. ALWAYS end with a simple, encouraging follow-up question
     6. Keep responses SHORT — 2 to 3 sentences maximum (this is voice playback)
     7. Be SPECIFIC in your encouragement — react to what they actually said
-
     EXAMPLE GOOD RESPONSES:
     - "Wah! That's a great point, yaar! Tell me more — what happened next?"
     - "Achha, I love how you explained that! So, what do you think about it?"
     - "Bilkul right! You explained that so clearly! Have you talked about this with anyone else?"
-
     EXAMPLE BAD RESPONSES (never do this):
     - "Good try! But the correct way to say it is..." ❌
     - "Almost! Next time try to use..." ❌
     - "That's an interesting attempt." ❌ (sounds condescending)
     PROMPT;
-
     public function instructions(): string
     {
         return self::SYSTEM_PROMPT;
     }
-
     /**
-     * Structured output schema.
-     * Gemini returns a typed JSON object with exactly these two fields.
-     * No regex parsing needed.
+     * @return array<string, \Illuminate\JsonSchema\Types\Type>
      */
     public function schema(JsonSchema $schema): array
     {
@@ -167,60 +133,42 @@ final class TutorAgent implements Agent, HasStructuredOutput
             'transcript' => $schema->string()
                 ->description('Verbatim transcription of what the user said in the audio.')
                 ->required(),
-            'response'   => $schema->string()
-                ->description('Warm, encouraging 2-3 sentence Dost reply, ending with a follow-up question.')
+            'response' => $schema->string()
+                ->description('Warm, encouraging 2–3 sentence Dost reply ending with a follow-up question.')
                 ->required(),
         ];
     }
 }
 ```
-
-### Step 4 — Create the `TutorResult` Value Object
-
+---
+### Step 3 — `TutorResult` Value Object
 ```php
 <?php
-// app/Services/AI/TutorResult.php
-
 declare(strict_types=1);
-
-namespace App\Services\AI;
-
+namespace App\Services\Ai;
 use App\Models\Recording;
-
 final readonly class TutorResult
 {
     public function __construct(
-        public string    $transcript,
-        public string    $response,
+        public string $transcript,
+        public string $response,
         public Recording $recording,
     ) {}
 }
 ```
-
-### Step 5 — Create the `TutorProcessor` Service
-
-This service orchestrates the recording → AI flow. It handles the daily conversation reset logic.
-
-```bash
-mkdir -p app/Services/AI
-```
-
+---
+### Step 4 — `TutorProcessor` Service
 ```php
 <?php
-// app/Services/AI/TutorProcessor.php
-
 declare(strict_types=1);
-
-namespace App\Services\AI;
-
-use App\AI\Agents\TutorAgent;
+namespace App\Services\Ai;
+use App\Ai\Agents\TutorAgent;
 use App\Models\Recording;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Laravel\Ai\Enums\Lab;
-use Laravel\Ai\Files;
-
+use Laravel\Ai\Files\Audio;
+use Laravel\Ai\Responses\StructuredAgentResponse;
 final class TutorProcessor
 {
     /**
@@ -231,216 +179,159 @@ final class TutorProcessor
     public function process(Recording $recording): TutorResult
     {
         $recording->markAsProcessing();
-
         try {
-            $user      = $recording->user;
-            $audioPath = $this->resolveAudioPath($recording);
-            $agent     = $this->resolveAgentForUser($user);
-
-            // Call Gemini with the audio file attached.
-            // The agent returns the structured output array {transcript, response}.
-            $result = $agent->prompt(
-                'Transcribe the audio and then respond as Dost.',
-                provider: Lab::Gemini,
-                model: 'gemini-2.5-flash',
-                attachments: [
-                    Files\Audio::fromPath($audioPath),
-                ],
+            $agent = $this->resolveAgent($recording->user);
+            /** @var StructuredAgentResponse $response */
+            $response = $agent->prompt(
+                'Transcribe the audio and respond as Dost.',
+                attachments: [Audio::fromStorage($recording->path, 'public')],
             );
-
-            $transcript    = $result['transcript'];
-            $tutorResponse = $result['response'];
-
-            $recording->markAsCompleted($transcript, $tutorResponse);
-
+            $transcript = (string) $response['transcript'];
+            $aiResponse = (string) $response['response'];
+            $recording->markAsCompleted($transcript, $aiResponse);
             Log::info('TutorProcessor: completed', [
-                'recording_id' => $recording->id,
-                'user_id'      => $recording->user_id,
+                'recording_id'    => $recording->id,
+                'conversation_id' => $response->conversationId,
             ]);
-
             return new TutorResult(
                 transcript: $transcript,
-                response:   $tutorResponse,
-                recording:  $recording->fresh(),
+                response:   $aiResponse,
+                recording:  $recording->fresh() ?? $recording,
             );
-
         } catch (\Throwable $e) {
             $recording->markAsFailed();
-
             Log::error('TutorProcessor: failed', [
                 'recording_id' => $recording->id,
                 'error'        => $e->getMessage(),
-                'trace'        => $e->getTraceAsString(),
             ]);
-
             throw $e;
         }
     }
-
     /**
-     * Resolve today's conversation or start a new one.
-     *
-     * Q7 answer: new conversation per day.
-     * laravel/ai's RemembersConversations stores history in agent_conversations table.
-     * We check if an existing conversation for this user+agent was started today.
+     * Resolve today's conversation or start a fresh one.
+     * New conversation each day; context preserved within the same day.
      */
-    private function resolveAgentForUser(User $user): TutorAgent
+    private function resolveAgent(User $user): TutorAgent
     {
-        $agent = new TutorAgent;
-
-        // Look for a conversation started today for this user + TutorAgent
-        $todayConversation = $user->agentConversations()
-            ->where('agent', TutorAgent::class)
+        $todayConversation = DB::table('agent_conversations')
+            ->where('user_id', $user->id)
             ->whereDate('created_at', today())
-            ->latest()
+            ->latest('updated_at')
             ->first();
-
-        if ($todayConversation) {
-            // Continue today's conversation (preserves context window)
-            return $agent->forUser($user)->continue($todayConversation->id);
+        if ($todayConversation !== null) {
+            return (new TutorAgent)->continue($todayConversation->id, as: $user);
         }
-
-        // Start fresh — new conversation for today
-        return $agent->forUser($user);
-    }
-
-    /**
-     * Resolve the absolute filesystem path to the audio file.
-     *
-     * @throws \RuntimeException if file is missing or too large for inline submission
-     */
-    private function resolveAudioPath(Recording $recording): string
-    {
-        $fullPath = Storage::disk('public')->path($recording->path);
-
-        if (! file_exists($fullPath)) {
-            throw new \RuntimeException(
-                "Audio file not found for recording #{$recording->id}: {$recording->path}"
-            );
-        }
-
-        // Gemini inline limit is ~20 MB. Recordings are typically <2 MB.
-        $sizeBytes = filesize($fullPath);
-        if ($sizeBytes > 20 * 1024 * 1024) {
-            throw new \RuntimeException(
-                "Audio file too large for inline submission ({$sizeBytes} bytes). " .
-                'Implement the Gemini Files API for recordings > 20 MB.'
-            );
-        }
-
-        return $fullPath;
+        return (new TutorAgent)->forUser($user);
     }
 }
 ```
-
-### Step 6 — Create the `AiResponseReady` Broadcast Event
-
-```bash
-php artisan make:event AiResponseReady
-```
-
+> **Why `DB::table()`?** The SDK does not expose an Eloquent model for `agent_conversations`. This is the only option and is acceptable per project rules ("no raw queries unless truly necessary" — this qualifies).
+---
+### Step 5 — `AiResponseReady` Broadcast Event
 ```php
 <?php
-// app/Events/AiResponseReady.php
-
 declare(strict_types=1);
-
 namespace App\Events;
-
 use App\Models\Recording;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-
 final class AiResponseReady implements ShouldBroadcast
 {
     use Dispatchable;
     use InteractsWithSockets;
     use SerializesModels;
-
     public function __construct(
         public readonly Recording $recording,
     ) {}
-
+    /** @return array<int, PrivateChannel> */
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('user.' . $this->recording->user_id),
+            new PrivateChannel('user.'.$this->recording->user_id),
         ];
     }
-
     public function broadcastAs(): string
     {
         return 'recording.completed';
     }
-
+    /**
+     * @return array<string, mixed>
+     */
     public function broadcastWith(): array
     {
         return [
             'recording_id'  => $this->recording->id,
             'transcript'    => $this->recording->transcript,
             'response_text' => $this->recording->ai_response_text,
-            // audio_url is null here; populated by VOICE-03 after TTS generation
-            'audio_url'     => null,
+            'audio_url'     => null, // populated by VOICE-03
         ];
     }
 }
 ```
-
-### Step 7 — Implement the `ProcessRecording` Listener
-
+---
+### Step 6 — `GenerateTtsAudio` Job (stub)
 ```php
 <?php
-// app/Listeners/ProcessRecording.php
-
 declare(strict_types=1);
-
+namespace App\Jobs;
+use App\Models\Recording;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Queue\Queueable;
+final class GenerateTtsAudio implements ShouldQueue
+{
+    use Queueable;
+    public string $queue = 'tts';
+    public function __construct(
+        public readonly Recording $recording,
+    ) {}
+    /**
+     * Full implementation in VOICE-03.
+     */
+    public function handle(): void
+    {
+        // VOICE-03: generate TTS audio and update $this->recording->ai_response_audio_path
+    }
+}
+```
+---
+### Step 7 — `ProcessRecording` Listener (full implementation)
+```php
+<?php
+declare(strict_types=1);
 namespace App\Listeners;
-
 use App\Events\AiResponseReady;
 use App\Events\RecordingFinished;
 use App\Jobs\GenerateTtsAudio;
-use App\Services\AI\TutorProcessor;
+use App\Services\Ai\TutorProcessor;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
-
 final class ProcessRecording implements ShouldQueue
 {
     use InteractsWithQueue;
-
     public string $queue   = 'ai';
     public int    $tries   = 2;
-    public int    $timeout = 30; // 30s latency guardrail
+    public int    $timeout = 30;
     public int    $backoff = 5;
-
     public function __construct(
         private readonly TutorProcessor $processor,
     ) {}
-
     public function handle(RecordingFinished $event): void
     {
         $recording = $event->recording;
-
         if (! $recording->isPending()) {
-            return; // Idempotency guard
+            return; // idempotency guard
         }
-
         $result = $this->processor->process($recording);
-
-        // Broadcast so UI shows AI response text immediately
         AiResponseReady::dispatch($result->recording);
-
-        // Dispatch TTS job to separate queue — doesn't block AI queue
         GenerateTtsAudio::dispatch($result->recording);
     }
-
     public function failed(RecordingFinished $event, \Throwable $exception): void
     {
         $event->recording->markAsFailed();
-
         Log::error('ProcessRecording permanently failed', [
             'recording_id' => $event->recording->id,
             'error'        => $exception->getMessage(),
@@ -448,261 +339,119 @@ final class ProcessRecording implements ShouldQueue
     }
 }
 ```
-
-### Step 8 — Register Listener & Configure Queue
-
-**`EventServiceProvider` (or `bootstrap/app.php` in Laravel 13+):**
-
-```php
-use App\Events\RecordingFinished;
-use App\Listeners\ProcessRecording;
-
-protected $listen = [
-    RecordingFinished::class => [
-        ProcessRecording::class,
-    ],
-];
-```
-
-**`.env` additions:**
-
-```dotenv
-GEMINI_API_KEY=your-google-ai-studio-key
-
-# Dev Docker: database queue (Valkey optional for production)
-QUEUE_CONNECTION=database
-
-# Broadcast
-BROADCAST_CONNECTION=reverb
-```
-
-**`supervisord.conf`** — add the AI queue worker:
-
-```ini
-[program:laravel-queue-ai]
-process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/html/artisan queue:work --queue=ai,default --sleep=3 --tries=2 --timeout=30
-autostart=true
-autorestart=true
-user=sail
-numprocs=2
-redirect_stderr=true
-stdout_logfile=/var/www/html/storage/logs/worker-ai.log
-```
-
-> **On Android device (NativePHP):** Queue uses `database` driver (SQLite). The `QUEUE_CONNECTION=database` in `.env.mobile` handles this — no external queue server needed.
-
-**Broadcast channel auth** — `routes/channels.php`:
-
-```php
-Broadcast::channel('user.{userId}', function ($user, $userId) {
-    return (int) $user->id === (int) $userId;
-});
-```
-
 ---
-
-## 5. Pest Tests
-
-Create `tests/Feature/Voice/TutorProcessorTest.php`:
-
+### Step 8 — Register Listener in `bootstrap/app.php`
+Laravel 13 uses `->withEvents()` on the Application builder — no separate `EventServiceProvider` needed:
+```php
+->withEvents(
+    listen: [
+        \App\Events\RecordingFinished::class => [
+            \App\Listeners\ProcessRecording::class,
+        ],
+    ]
+)
+```
+---
+## 6. Pest Tests
+File: `tests/Feature/Voice/TutorProcessorTest.php`
 ```php
 <?php
-
-use App\AI\Agents\TutorAgent;
+declare(strict_types=1);
+use App\Ai\Agents\TutorAgent;
 use App\Events\AiResponseReady;
 use App\Events\RecordingFinished;
 use App\Jobs\GenerateTtsAudio;
 use App\Listeners\ProcessRecording;
 use App\Models\Recording;
 use App\Models\User;
-use App\Services\AI\TutorProcessor;
-use App\Services\AI\TutorResult;
+use App\Services\Ai\TutorProcessor;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
-
 describe('TutorProcessor', function () {
-
     beforeEach(function () {
-        $this->user = User::factory()->create();
         Storage::fake('public');
+        $this->user = User::factory()->create();
     });
-
     it('marks recording completed with transcript and response', function () {
         Storage::disk('public')->put('recordings/1/test.m4a', 'fake-audio');
-
-        $recording = Recording::factory()->create([
-            'user_id' => $this->user->id,
-            'path'    => 'recordings/1/test.m4a',
-            'status'  => 'pending',
+        TutorAgent::fake([
+            ['transcript' => 'Hello my name is Raj.', 'response' => 'Wah, great to meet you Raj yaar!'],
         ]);
-
-        // Mock the laravel/ai TutorAgent
-        $mockAgent = Mockery::mock(TutorAgent::class);
-        $mockAgent->shouldReceive('forUser')->andReturnSelf();
-        $mockAgent->shouldReceive('prompt')->andReturn([
-            'transcript' => 'Hello, my name is Raj.',
-            'response'   => 'Wah! Great to meet you Raj yaar! What do you like to talk about?',
+        $recording = Recording::factory()->for($this->user)->pending()->create([
+            'path' => 'recordings/1/test.m4a',
         ]);
-
-        $this->app->instance(TutorAgent::class, $mockAgent);
-
-        $processor = $this->app->make(TutorProcessor::class);
-        $result    = $processor->process($recording);
-
-        expect($result->transcript)->toBe('Hello, my name is Raj.')
-            ->and($result->response)->toContain('Raj')
-            ->and($recording->fresh()->status)->toBe('completed')
-            ->and($recording->fresh()->transcript)->toBe('Hello, my name is Raj.');
+        $result = app(TutorProcessor::class)->process($recording);
+        expect($result->transcript)->toBe('Hello my name is Raj.')
+            ->and($result->response)->toBe('Wah, great to meet you Raj yaar!')
+            ->and($recording->fresh()->status->value)->toBe('completed')
+            ->and($recording->fresh()->transcript)->toBe('Hello my name is Raj.');
+        TutorAgent::assertPrompted(fn ($p) => $p->contains('Transcribe'));
     });
-
     it('marks recording as failed when Gemini throws', function () {
         Storage::disk('public')->put('recordings/1/test.m4a', 'fake-audio');
-
-        $recording = Recording::factory()->create([
-            'user_id' => $this->user->id,
-            'path'    => 'recordings/1/test.m4a',
-            'status'  => 'pending',
+        TutorAgent::fake(fn () => throw new RuntimeException('API error'));
+        $recording = Recording::factory()->for($this->user)->pending()->create([
+            'path' => 'recordings/1/test.m4a',
         ]);
-
-        $mockAgent = Mockery::mock(TutorAgent::class);
-        $mockAgent->shouldReceive('forUser')->andReturnSelf();
-        $mockAgent->shouldReceive('prompt')->andThrow(new \RuntimeException('API error'));
-
-        $this->app->instance(TutorAgent::class, $mockAgent);
-
-        $processor = $this->app->make(TutorProcessor::class);
-
-        expect(fn () => $processor->process($recording))
-            ->toThrow(\RuntimeException::class);
-
-        expect($recording->fresh()->status)->toBe('failed');
-    });
-
-    it('throws when audio file is missing', function () {
-        $recording = Recording::factory()->create([
-            'user_id' => $this->user->id,
-            'path'    => 'recordings/1/missing.m4a',
-            'status'  => 'pending',
-        ]);
-
-        $processor = $this->app->make(TutorProcessor::class);
-
-        expect(fn () => $processor->process($recording))
-            ->toThrow(\RuntimeException::class, 'Audio file not found');
+        expect(fn () => app(TutorProcessor::class)->process($recording))
+            ->toThrow(RuntimeException::class);
+        expect($recording->fresh()->status->value)->toBe('failed');
     });
 });
-
 describe('ProcessRecording Listener', function () {
-
     it('dispatches AiResponseReady and GenerateTtsAudio on success', function () {
         Storage::fake('public');
         Storage::disk('public')->put('recordings/1/test.m4a', 'fake-audio');
         Event::fake([AiResponseReady::class]);
         Queue::fake();
-
-        $user      = User::factory()->create();
-        $recording = Recording::factory()->create([
-            'user_id' => $user->id,
-            'path'    => 'recordings/1/test.m4a',
-            'status'  => 'pending',
+        TutorAgent::fake([
+            ['transcript' => 'Test transcript', 'response' => 'Wah yaar!'],
         ]);
-
-        $mockProcessor = Mockery::mock(TutorProcessor::class);
-        $mockProcessor->shouldReceive('process')->andReturn(
-            new TutorResult('Test transcript', 'Wah!', $recording)
-        );
-        $this->app->instance(TutorProcessor::class, $mockProcessor);
-
-        $listener = $this->app->make(ProcessRecording::class);
-        $listener->handle(new RecordingFinished($recording));
-
+        $recording = Recording::factory()->pending()->create([
+            'path' => 'recordings/1/test.m4a',
+        ]);
+        app(ProcessRecording::class)->handle(new RecordingFinished($recording));
         Event::assertDispatched(AiResponseReady::class);
-        Queue::assertPushedOn('tts', GenerateTtsAudio::class);
+        Queue::assertPushed(GenerateTtsAudio::class);
     });
-
     it('skips non-pending recordings', function () {
-        $recording = Recording::factory()->create(['status' => 'completed']);
-
-        $mockProcessor = Mockery::mock(TutorProcessor::class);
-        $mockProcessor->shouldNotReceive('process');
-        $this->app->instance(TutorProcessor::class, $mockProcessor);
-
-        $listener = $this->app->make(ProcessRecording::class);
-        $listener->handle(new RecordingFinished($recording));
+        TutorAgent::fake()->preventStrayPrompts();
+        $recording = Recording::factory()->completed()->create();
+        app(ProcessRecording::class)->handle(new RecordingFinished($recording));
+        TutorAgent::assertNeverPrompted();
     });
 });
 ```
-
 ---
+## 7. As-Built Record
 
-## 6. Verification Checklist
+### Completed
+- [x] `GEMINI_API_KEY` set in `.env`
+- [x] `laravel/ai` migrations ran (`agent_conversations` + `agent_conversation_messages`)
+- [x] `TutorAgent` in `app/Ai/Agents/` with `#[Provider(Lab::Gemini)]` + `#[Model('gemini-2.5-flash')]`
+- [x] `RemembersConversations` trait — daily conversation scoping via `DB::table('agent_conversations')->whereDate(...)`
+- [x] `Audio::fromStorage($recording->path, 'public')` — relative disk path
+- [x] `$response['transcript']` + `$response['response']` via `StructuredAgentResponse` ArrayAccess
+- [x] `AiResponseReady` broadcast on `PrivateChannel('user.{id}')` — channel already authorized in `channels.php`
+- [x] `GenerateTtsAudio` stub dispatched to `tts` queue
+- [x] `EventServiceProvider` wires `RecordingFinished → ProcessRecording` (extends `Illuminate\Foundation\Support\Providers\EventServiceProvider`)
+- [x] Queue workers added to `docker/8.4/supervisord.conf` — `default` ×2, `ai` ×2, `scheduler` ×1
+- [x] 4 Pest tests passing; `composer check` fully green
 
-- [ ] `laravel/ai` installed and `agent_conversations` / `agent_conversation_messages` tables migrated
-- [ ] `TutorAgent` scaffolded via `php artisan make:agent TutorAgent`
-- [ ] System prompt returns correct persona instructions (verify with a test prompt)
-- [ ] Structured output `{transcript, response}` correctly returned — no regex needed
-- [ ] `Recording` updated with `status=completed`, `transcript`, and `ai_response_text`
-- [ ] Daily conversation reset: new conversation created for a new day
-- [ ] Same-day conversation continues with context preserved
-- [ ] `AiResponseReady` broadcast event fires after completion
-- [ ] `GenerateTtsAudio` job dispatched to `tts` queue
-- [ ] Queue worker processes `ai` queue with 30s timeout
-- [ ] Failed jobs mark recording as `failed` after 2 retries
-- [ ] `composer test` passes all TutorProcessor tests (with mocked agent)
-
+### Plan Deviations
+| Original Plan | Actual Implementation | Reason |
+|---|---|---|
+| Step 8 used `bootstrap/app.php` `->withEvents()` | Used `EventServiceProvider` extending `Illuminate\Foundation\Support\Providers\EventServiceProvider` | AGENTS.md is the source of truth and explicitly requires this pattern |
+| supervisord.conf not mentioned in VOICE-02 scope | Added queue workers (`default` ×2, `ai` ×2, `scheduler` ×1) | Without workers the `ai` queue never processes — pipeline would be silently broken |
 ---
-
-## 7. Acceptance Criteria
-
-1. `TutorProcessor::process()` sends audio to Gemini and returns a warm, structured response.
-2. System prompt is set server-side — cannot be overridden by user speech.
-3. Structured output provides clean `transcript` and `response` fields.
-4. Conversation context is maintained within the same day; resets at midnight.
-5. AI response saved to `recordings.ai_response_text` within 3 seconds of `RecordingFinished`.
-6. Queue handles failures gracefully; recording marked `failed` after 2 retries.
-7. `AiResponseReady` event broadcast within **3 seconds** of `RecordingFinished`.
-
----
-
-## 8. Risks & Mitigations
-
-| Risk                                                   | Mitigation |
-|--------------------------------------------------------|-----------|
-| `laravel/ai` `Files\Audio` doesn't support `audio/mp4` | Verify in R&D-01; if fails, use `Files\Document` with audio MIME or raw Gemini REST API |
-| Audio file > 20 MB inline limit                        | Throw descriptive exception; implement Gemini File API upload for large recordings |
-| Gemini structured output returns invalid JSON          | `laravel/ai` handles retries internally; add defensive validation in `TutorProcessor` |
-| Gemini prompt injection via user audio                 | System prompt is server-side only; user content is binary audio, not text |
-| AI response too long for TTS                           | Prompt instructs Gemini to keep responses ≤ 3 sentences; VOICE-03 caps at 500 chars |
-| `agent_conversations` table grows unbounded            | Schedule `php artisan model:prune` on `AgentConversation` (30-day TTL) in DATA-01 |
-| Daily reset edge case at midnight                      | Use `whereDate('created_at', today())` — server timezone set via `APP_TIMEZONE` in `.env` |
- `nativephp/mobile` + Laravel 13 queue compatibility     On device, queue uses SQLite (`database` driver) — no Valkey/Redis dependency 
-    $table->id();
-    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-    $table->string('title')->nullable(); // Auto-generated from first exchange
-    $table->unsignedInteger('total_duration_seconds')->default(0);
-    $table->timestamps();
-
-    $table->index('user_id');
-});
-```
-
-```php
-// xxxx_create_messages_table.php
-Schema::create('messages', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('conversation_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('recording_id')->nullable()->constrained()->nullOnDelete();
-
-    // 'user' = spoken by user, 'assistant' = Dost's response
-    $table->enum('role', ['user', 'assistant']);
-
-    $table->text('content'); // text content for context window
-    $table->string('audio_path')->nullable(); // path to audio file
-    $table->timestamps();
-
-    $table->index(['conversation_id', 'created_at']);
-});
-```
-
+## 8. Key Gotchas
+| Gotcha | Detail |
+|--------|--------|
+| Namespace is `App\Ai` not `App\AI` | Artisan generates `app/Ai/Agents/` — match exactly in use statements |
+| `continue()` uses named param | `->continue($id, as: $user)` — `as:` is required named argument |
+| No `agent` column in `agent_conversations` | Filter by `user_id` + `whereDate` only — agent type not stored at conversation level |
+| Larastan needs PHPDoc cast | `prompt()` returns `AgentResponse`; add `/** @var StructuredAgentResponse $response */` |
+| `DB::table()` justified here | SDK exposes no Eloquent model for conversations — this is the only option |
+| `TutorAgent::fake()` for structured output | Auto-generates fake data matching the schema — no manual array needed unless specific values required |
+| `bootstrap/app.php` syntax | Laravel 13 `->withEvents(listen: [...])` — no `EventServiceProvider` class needed |

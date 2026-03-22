@@ -11,14 +11,14 @@ Stop as soon as you have what you need — follow this order:
 3. **`grep_search` by known symbol** — when you know a class name, method, or string it contains, grep for it.
 4. **`file_search` as a last resort** — only when none of the above applies.
 
-## Before Starting Any Task
+## Before Starting Any Task (MUST READ THIS)
 Act as a senior engineer from the start:
 - Identify all layers affected (model, migration, event, listener, job, Livewire component, Pest tests).
 - Think through edge cases and failure paths **before** writing any code.
 - Validate the planned approach upfront — not after implementation.
 - If intent or scope is unclear, **ask** — never assume. Only ask what cannot be answered from attached files or the codebase.
 
-## After Finishing Any Changes
+## After Finishing Any Changes (MUST READ THIS)
 **Final review pass before running quality checks:**
 - Re-read all changed files and verify edge cases and failure paths are handled.
 - Confirm no N+1 query risks were introduced.
@@ -27,8 +27,28 @@ Act as a senior engineer from the start:
 
 **Always run the full quality suite after finishing:**
 ```bash
-docker compose exec app composer check
+./bin/composer check
 ```
+
+## Debugging and Fixing Errors
+When something is not working or an error occurs, follow this priority order:
+1. **`search-docs` MCP tool first** — query the Laravel Boost documentation API for version-specific answers before anything else. It covers Laravel, Livewire, `laravel/ai`, Pest, Tailwind, and more.
+2. **`curl` as fallback** — if `search-docs` doesn't have the answer, fetch the official page directly: `curl -s "https://laravel.com/docs/13.x/<topic>"`. Use the same approach for any ecosystem package docs.
+3. **Inspect vendor source** — read the relevant class/trait in `vendor/` to confirm the actual API.
+4. **Reliable conventional fix only** — if no documented solution exists, apply the most idiomatic Laravel-compatible fix. Do **not** work around framework conventions or use hacks.
+
+## Tool Usage — Always Prefer Tools Over Terminal
+- **Reading files** → always `read_file` tool. Never use `cat` in the terminal.
+- **Editing files** → always `insert_edit_into_file` or `replace_string_in_file`. Never use `echo`, heredoc, or `python3` writes unless a tool is genuinely unavailable.
+- **Searching** → `grep_search` or `file_search` tools. Avoid `grep`/`find` in the terminal.
+- **Terminal (`run_in_terminal`)** → only for tasks with no tool equivalent: running Artisan commands, Pint, tests, Docker operations, `chmod`.
+
+## File Access in Docker Projects
+- **Do not use raw `docker compose exec app ...` for developer commands.** It runs as `root` in this repo and creates root-owned files on the bind mount.
+- **Use the wrapper commands instead:** `./bin/artisan`, `./bin/composer`, `./bin/npm`, `./bin/dapp`. They run as `sail`, set `umask 0002`, and use a writable temp directory (`storage/tmp`).
+- **Set both `WWWUSER` and `WWWGROUP` in `.env`** (matching your host UID/GID from `id -u` / `id -g`). The container entrypoint runs `groupmod` + `usermod` at startup so sail's UID **and** GID match the host — both are needed for `umask 0002` group-writability to be useful.
+- **For multi-user host editing,** use `./bin/share-repo-group <group>` once to align the repo to a shared host group and enable group inheritance on directories. It excludes `.git/` internals from the chmod pass.
+- **If you encounter stale root-owned artifacts from the old workflow,** repair the affected path with Docker and then continue using the wrappers. Do not fall back to `chmod 666` as the standard workflow.
 
 ## Keeping Instructions Current
 - If a new pattern, convention, or gotcha was discovered during work, **add it** to the relevant section in this file. Avoid duplicates and keep additions concise.
@@ -112,6 +132,8 @@ These rules extend or override the Boost-generated sections that follow inside t
 ## Queues (extends Laravel/Core Rules)
 - AI processing jobs go on the **`ai` queue**. Audio cleanup jobs go on the **`default` queue**.
 - Never perform AI inference or audio processing synchronously in a request/response cycle.
+- Queue workers run as **dedicated Docker containers** in `docker-compose.yml` — `queue-default`, `queue-ai`, `scheduler`. Each reuses the `dost-app` image with a `command:` override (same pattern as the `reverb` container). `supervisord.conf` only manages PHP-FPM + Apache.
+- The `queue-ai` container uses `--timeout=30 --tries=2` — these **must match** `ProcessRecording::$timeout` and `$tries` exactly. `tts` worker is added only when VOICE-03 Tier 2 (OpenAI TTS) is implemented.
 ## Events & Listeners (extends Laravel/Core Rules)
 - Use events and listeners to decouple the voice pipeline stages.
 - Key events: `RecordingFinished`, `AiResponseReady`. Never skip them to "simplify" — they are the architecture.
@@ -154,17 +176,18 @@ These rules extend or override the Boost-generated sections that follow inside t
 - Edge-to-edge Android layout: handle status bar and navigation bar areas with inset utilities.
 ---
 === laravel/ai rules ===
-# laravel/ai SDK
+## laravel/ai SDK
 - **Never** use the raw Gemini API — always go through `laravel/ai`.
-- Create agents: `php artisan make:agent {Name}`.
-- Provider: `Laravel\Ai\Enums\Lab::Gemini`. Model: **`gemini-2.5-flash`**.
-- Audio attachments: `Files\Audio::fromStorage($path, disk: 'local')`.
-- `RemembersConversations` trait for conversation context (e.g. `TutorAgent`).
-- `HasStructuredOutput` for typed responses like `{transcript, response}`.
-- SDK owns conversation history (`agent_conversations` / `agent_conversation_messages`) — do **not** build custom models.
-- System prompts in `app/Prompts/` or config — never hardcoded inline.
+- Create agents: `php artisan make:agent {Name} --structured --no-interaction`. Places file in `app/Ai/Agents/` (lowercase `i`).
+- Provider/model via PHP 8 attributes: `#[Provider(Lab::Gemini)]` + `#[Model('gemini-2.5-flash')]`.
+- Audio attachments: `Files\Audio::fromStorage($path, 'public')` — second arg is disk name (positional, not named).
+- `RemembersConversations` trait for conversation context. Use `forUser($user)` to start, `continue($id, as: $user)` to resume (`as:` is a named param).
+- `HasStructuredOutput` for typed responses — returns `StructuredAgentResponse` (implements `ArrayAccess`): `$response['transcript']`.
+- SDK owns conversation history (`agent_conversations` / `agent_conversation_messages`) — do **not** build custom models. No `agent` column on `agent_conversations`; query by `user_id` + `whereDate`.
+- System prompt defined as a `private const` inside the agent class — never hardcoded inline in a service.
 - TutorAgent prompt must enforce: encouragement only, Indian English warmth, 2–3 sentences max, never correct grammar, always end with a question.
-- Install: `composer require laravel/ai` → `php artisan vendor:publish --provider="Laravel\Ai\AiServiceProvider"` → `php artisan migrate`.
+- Register events via `EventServiceProvider` extending `Illuminate\Foundation\Support\Providers\EventServiceProvider` — not `bootstrap/app.php` `withEvents()`.
+- Testing: `TutorAgent::fake()` auto-generates structured fake data. Use `TutorAgent::fake()->preventStrayPrompts()` to catch unexpected calls.
 
 ---
 
@@ -192,6 +215,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/breeze (BREEZE) - v2
 - laravel/pail (PAIL) - v1
 - laravel/pint (PINT) - v1
+- laravel/telescope (TELESCOPE) - v5
 - pestphp/pest (PEST) - v4
 - phpunit/phpunit (PHPUNIT) - v12
 - tailwindcss (TAILWINDCSS) - v4

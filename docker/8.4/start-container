@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-# ── Align sail UID with host user (fixes file-permission issues on volumes) ───
+# ── Align sail UID/GID with host user (fixes file-permission issues on volumes) ─
+# GID first — groupmod must complete before usermod touches the group membership.
+if [ -n "$WWWGROUP" ]; then
+    groupmod -g "$WWWGROUP" sail 2>/dev/null || true
+fi
 if [ -n "$WWWUSER" ]; then
     usermod -u "$WWWUSER" sail
 fi

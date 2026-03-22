@@ -38,6 +38,8 @@ plan/
 | AUTH-01 | Mobile-Optimized Authentication | March 21, 2026 | Breeze + Livewire 4 + Volt installed; Tailwind v4 conflict resolved; dark warm mobile-first auth views; `audio_retention_days` + `RetentionDays` enum; 27 tests passing; `composer check` fully green |
  RND-01  Gemini Audio Compatibility Spike  March 21, 2026  All three M4A MIME types accepted by Gemini 2.5 Flash; `audio/mp4` chosen; no FFmpeg needed; latency ~3.6s; `laravel/ai` installed; ADR-001 written 
  VOICE-01  Hold-to-Speak Recording Logic  March 21, 2026  `recordings` table + `Recording` model + `RecordingStatus` enum; `RecordingButton` Livewire component; `RecordingFinished` event; `ProcessRecording` queued listener stub; 9 Pest tests passing; `composer check` green
+ VOICE-02  TutorAgent AI Integration  March 22, 2026  `TutorAgent` + `TutorProcessor` + `TutorResult` + `AiResponseReady` event + `GenerateTtsAudio` stub; `EventServiceProvider` wires `RecordingFinished → ProcessRecording`; supervisord queue workers added (`default` ×2, `ai` ×2, scheduler ×1); 4 Pest tests; `composer check` green
+ VOICE-03  AI Response & TTS Playback  March 22, 2026  Tier 1 MVP: `onAiResponseReady(array $event)` uses broadcast payload directly (no DB query); robust Web Speech API with `onerror`, Indian voice selection, `onvoiceschanged` async guard; Tier 2 `<audio>` element pre-wired; 7 Pest tests; `composer check` green
 
 ---
 
@@ -104,8 +106,8 @@ INF-01 (Docker)
 |--------|-------|------|-----------|--------|
 | RND-01 | Gemini Audio Compatibility Spike | 5h | 5 | ✅ Done |
  VOICE-01  Hold-to-Speak Recording Logic  5h  4  ✅ Done 
-| VOICE-02 | TutorAgent AI Integration | 6h | 4 | |
-| VOICE-03 | AI Response & TTS Playback | 4h | 3 | |
+| VOICE-02 | TutorAgent AI Integration | 6h | 4 | ✅ Done |
+| VOICE-03 | AI Response & TTS Playback | 4h | 3 | ✅ Done |
 
 **Phase 3 Goal:** A working voice loop: User holds → records → releases → AI processes → voice plays back. The "soul" of the app.
 

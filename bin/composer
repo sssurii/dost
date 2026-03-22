@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+exec docker compose exec --user sail -e UMASK=0002 -e TMPDIR=/var/www/html/storage/tmp app sh -lc 'umask "$UMASK" && mkdir -p "$TMPDIR" && export TMPDIR && exec composer "$@"' sh "$@"

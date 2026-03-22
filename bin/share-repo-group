@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <group>"
+    exit 1
+fi
+
+group="$1"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if ! getent group "$group" >/dev/null; then
+    echo "Group '$group' does not exist on this host."
+    exit 1
+fi
+
+echo "Applying shared-group permissions to $repo_root using group '$group'..."
+sudo chgrp -R "$group" "$repo_root"
+find "$repo_root" -not -path '*/.git/*' -type d -exec chmod 2775 {} +
+find "$repo_root" -not -path '*/.git/*' -type f -exec chmod g+rw {} +
+
+echo "Done."
+echo "Ask each collaborator to join group '$group' and reopen their shell session."
