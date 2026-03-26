@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /*
@@ -48,3 +49,7 @@ function something()
 {
     // ..
 }
+
+beforeEach(function () {
+    Cache::flush();
+});

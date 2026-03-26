@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Events\AiResponseReady;
 use App\Events\RecordingFinished;
+use App\Listeners\InvalidateProgressCache;
 use App\Listeners\ProcessRecording;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
@@ -18,6 +20,9 @@ final class EventServiceProvider extends ServiceProvider
     protected $listen = [
         RecordingFinished::class => [
             ProcessRecording::class,
+        ],
+        AiResponseReady::class => [
+            InvalidateProgressCache::class,
         ],
     ];
 }

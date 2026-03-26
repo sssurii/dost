@@ -36,10 +36,11 @@ plan/
 | INF-03 | MCP Documentation Sync | March 21, 2026 | context7 & docs/context/ dropped — Laravel Boost `search-docs` + instruction files (CLAUDE.md, AGENTS.md, GEMINI.md, .github/copilot-instructions.md) cover the need |
 | MOB-01 | NativePHP Android Bootstrapping | March 21, 2026 | NativePHP + Microphone + Device plugins installed; `native:jump` working on physical device via WiFi; rsync added to Docker image; port 3000 exposed |
 | AUTH-01 | Mobile-Optimized Authentication | March 21, 2026 | Breeze + Livewire 4 + Volt installed; Tailwind v4 conflict resolved; dark warm mobile-first auth views; `audio_retention_days` + `RetentionDays` enum; 27 tests passing; `composer check` fully green |
- RND-01  Gemini Audio Compatibility Spike  March 21, 2026  All three M4A MIME types accepted by Gemini 2.5 Flash; `audio/mp4` chosen; no FFmpeg needed; latency ~3.6s; `laravel/ai` installed; ADR-001 written 
+ RND-01  Gemini Audio Compatibility Spike  March 23, 2026  Verified via `./bin/artisan spike:audio`: filesystem-detected `audio/x-m4a`, `audio/mp4`, `audio/aac`, and `audio/m4a` all accepted by Gemini 2.5 Flash; no FFmpeg needed; latency 3.5s–4.0s; `laravel/ai` installed 
  VOICE-01  Hold-to-Speak Recording Logic  March 21, 2026  `recordings` table + `Recording` model + `RecordingStatus` enum; `RecordingButton` Livewire component; `RecordingFinished` event; `ProcessRecording` queued listener stub; 9 Pest tests passing; `composer check` green
  VOICE-02  TutorAgent AI Integration  March 22, 2026  `TutorAgent` + `TutorProcessor` + `TutorResult` + `AiResponseReady` event + `GenerateTtsAudio` stub; `EventServiceProvider` wires `RecordingFinished → ProcessRecording`; supervisord queue workers added (`default` ×2, `ai` ×2, scheduler ×1); 4 Pest tests; `composer check` green
  VOICE-03  AI Response & TTS Playback  March 22, 2026  Tier 1 MVP: `onAiResponseReady(array $event)` uses broadcast payload directly (no DB query); robust Web Speech API with `onerror`, Indian voice selection, `onvoiceschanged` async guard; Tier 2 `<audio>` element pre-wired; 7 Pest tests; `composer check` green
+ DATA-01  Pruning & Privacy Policy  March 22, 2026  `recordings.path` made nullable (migration); `recordings_analytics_index` added; `CleanupAudio` command with `--dry-run` + `--user` options; scheduled daily at 02:00; `AudioRetention` settings Livewire component with logout; mobile bottom nav replaces Breeze top nav; `User::recordings()` relationship; `duration_seconds` estimated from file size; 9 Pest tests; `composer check` green
 
 ---
 
@@ -117,7 +118,7 @@ INF-01 (Docker)
 
 | Ticket | Title | Est. | Complexity |
 |--------|-------|------|-----------|
-| DATA-01 | Pruning & Privacy Policy | 2h | 1 |
+| DATA-01 | Pruning & Privacy Policy | 2h | 1 | ✅ Done |
 | UI-02 | Progress Dashboard | 5h | 3 |
 
 **Phase 4 Goal:** Users can see their speaking progress, feel motivated, and trust their data is handled responsibly.

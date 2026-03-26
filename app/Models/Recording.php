@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * @property RecordingStatus $status
+ * @property string|null $path
+ * @property string|null $ai_response_audio_path
  * @property Carbon|null $expires_at
  */
 final class Recording extends Model
@@ -53,13 +55,21 @@ final class Recording extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function getFullPathAttribute(): string
+    public function getFullPathAttribute(): ?string
     {
+        if ($this->path === null) {
+            return null;
+        }
+
         return Storage::disk('public')->path($this->path);
     }
 
-    public function getPublicUrlAttribute(): string
+    public function getPublicUrlAttribute(): ?string
     {
+        if ($this->path === null) {
+            return null;
+        }
+
         return Storage::disk('public')->url($this->path);
     }
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Listeners;
 
 use App\Events\AiResponseReady;
+use App\Events\RecordingFailed;
 use App\Events\RecordingFinished;
-use App\Jobs\GenerateTtsAudio;
 use App\Services\Ai\TutorProcessor;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
@@ -36,7 +36,6 @@ final class ProcessRecording implements ShouldQueue
         }
         $result = $this->processor->process($recording);
         AiResponseReady::dispatch($result->recording);
-        GenerateTtsAudio::dispatch($result->recording);
     }
 
     public function failed(RecordingFinished $event, \Throwable $exception): void
@@ -46,5 +45,6 @@ final class ProcessRecording implements ShouldQueue
             'recording_id' => $event->recording->id,
             'error' => $exception->getMessage(),
         ]);
+        RecordingFailed::dispatch($event->recording, $exception->getMessage());
     }
 }

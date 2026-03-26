@@ -22,9 +22,11 @@ final class TutorProcessor
     public function process(Recording $recording): TutorResult
     {
         $recording->markAsProcessing();
+        Log::info('audio file path: '.$recording->path);
 
         try {
             $agent = $this->resolveAgent($recording->user);
+
             /** @var StructuredAgentResponse $response */
             $response = $agent->prompt(
                 'Transcribe the audio and respond as Dost.',

@@ -1,2 +1,12 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
+
+:root {
+    --app-safe-top: max(env(safe-area-inset-top, 0px), var(--inset-top, 0px));
+    --app-safe-right: max(env(safe-area-inset-right, 0px), var(--inset-right, 0px));
+    --app-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--inset-bottom, 0px));
+    --app-safe-left: max(env(safe-area-inset-left, 0px), var(--inset-left, 0px));
+    --app-nav-bottom-offset: max(var(--app-safe-bottom), 14px);
+    --app-bottom-nav-height: 80px;
+    --app-bottom-nav-offset: calc(var(--app-bottom-nav-height) + var(--app-nav-bottom-offset));
+}

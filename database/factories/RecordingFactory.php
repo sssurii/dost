@@ -23,7 +23,7 @@ final class RecordingFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'path' => 'recordings/1/rec_'.time().'.m4a',
+            'path' => 'recordings/'.fake()->numberBetween(1, 9999).'/rec_'.fake()->uuid().'.m4a',
             'mime_type' => 'audio/mp4',
             'duration_seconds' => fake()->numberBetween(1, 60),
             'file_size_bytes' => fake()->numberBetween(10000, 500000),

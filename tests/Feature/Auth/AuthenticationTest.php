@@ -43,16 +43,13 @@ test('users can not authenticate with invalid password', function () {
     $this->assertGuest();
 });
 
-test('navigation menu can be rendered', function () {
+test('mobile bottom navigation is rendered on dashboard', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user);
-
-    $response = $this->get('/dashboard');
-
-    $response
+    $this->actingAs($user)
+        ->get('/dashboard')
         ->assertOk()
-        ->assertSeeVolt('layout.navigation');
+        ->assertSee(route('settings.privacy', absolute: false));
 });
 
 test('users can logout', function () {

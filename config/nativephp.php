@@ -144,7 +144,7 @@ return [
     */
 
     'runtime' => [
-        'mode' => 'persistent', // 'classic' or 'persistent'
+        'mode' => env('NATIVEPHP_RUNTIME_MODE', 'classic'), // 'classic' or 'persistent'
         'reset_instances' => true,
         'gc_between_dispatches' => false,
     ],

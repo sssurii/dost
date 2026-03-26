@@ -48,7 +48,8 @@ When something is not working or an error occurs, follow this priority order:
 - **Use the wrapper commands instead:** `./bin/artisan`, `./bin/composer`, `./bin/npm`, `./bin/dapp`. They run as `sail`, set `umask 0002`, and use a writable temp directory (`storage/tmp`).
 - **Set both `WWWUSER` and `WWWGROUP` in `.env`** (matching your host UID/GID from `id -u` / `id -g`). The container entrypoint runs `groupmod` + `usermod` at startup so sail's UID **and** GID match the host — both are needed for `umask 0002` group-writability to be useful.
 - **For multi-user host editing,** use `./bin/share-repo-group <group>` once to align the repo to a shared host group and enable group inheritance on directories. It excludes `.git/` internals from the chmod pass.
-- **If you encounter stale root-owned artifacts from the old workflow,** repair the affected path with Docker and then continue using the wrappers. Do not fall back to `chmod 666` as the standard workflow.
+- **If you encounter stale root-owned artifacts from the old workflow,** repair the affected path with `sudo chown fnl:fnl <file>` on the host and then continue using the wrappers. Do not fall back to `chmod 666` as the standard workflow.
+- **`insert_edit_into_file` silently fails on freshly artisan-scaffolded files.** After any `./bin/artisan make:*` command, always use `replace_string_in_file` (not `insert_edit_into_file`) to fill in the implementation — match the entire scaffold stub as `oldString` and replace it with the real code.
 
 ## Keeping Instructions Current
 - If a new pattern, convention, or gotcha was discovered during work, **add it** to the relevant section in this file. Avoid duplicates and keep additions concise.

@@ -1,14 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Filesystem\Filesystem;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Files\Audio;
+use Laravel\Ai\Files\LocalAudio;
 use Laravel\Ai\Promptable;
 use Laravel\Ai\Responses\AgentResponse;
 use Throwable;
@@ -16,12 +19,12 @@ use Throwable;
 /**
  * RND-01: Gemini Audio Compatibility Spike
  *
- * Tests whether Gemini 2.5 Flash accepts .m4a audio (audio/mp4 MIME) directly
- * via the laravel/ai SDK, or whether server-side conversion is required.
+ * Tests whether Gemini 2.5 Flash accepts .m4a audio directly via the Laravel AI SDK,
+ * and whether explicit MIME overrides affect acceptance.
  *
- * Run: docker compose exec app php artisan spike:audio
+ * Run: ./bin/artisan spike:audio
  */
-class SpikeAudioCommand extends Command
+final class SpikeAudioCommand extends Command
 {
     protected $signature = 'spike:audio';
 
@@ -40,24 +43,28 @@ class SpikeAudioCommand extends Command
             return self::FAILURE;
         }
 
-        Storage::disk('local')->put('audio-spike/test.m4a', file_get_contents($sourcePath));
-
         $agent = $this->buildAgent();
 
         $tests = [
-            ['label' => 'audio/mp4  (M4A native)',  'mime' => 'audio/mp4'],
-            ['label' => 'audio/aac  (AAC bare)',     'mime' => 'audio/aac'],
-            ['label' => 'audio/m4a  (non-standard)', 'mime' => 'audio/m4a'],
+            ['label' => 'auto-detected MIME', 'mime' => null],
+            ['label' => 'audio/mp4 (M4A native)', 'mime' => 'audio/mp4'],
+            ['label' => 'audio/aac (AAC bare)', 'mime' => 'audio/aac'],
+            ['label' => 'audio/m4a (non-standard)', 'mime' => 'audio/m4a'],
         ];
 
         $winnerMime = null;
         $winnerLatency = null;
 
         foreach ($tests as $test) {
-            [$success, $latencyMs] = $this->runMimeTest($agent, $test['label']);
+            [$success, $latencyMs] = $this->runMimeTest(
+                $agent,
+                $this->buildAttachment($sourcePath, $test['mime']),
+                $test['label'],
+                $test['mime'],
+            );
 
             if ($success && $winnerMime === null) {
-                $winnerMime = $test['mime'];
+                $winnerMime = $test['mime'] ?? 'auto-detected';
                 $winnerLatency = $latencyMs;
             }
         }
@@ -67,9 +74,6 @@ class SpikeAudioCommand extends Command
         return $winnerMime !== null ? self::SUCCESS : self::FAILURE;
     }
 
-    /**
-     * Print the spike banner and audio file info.
-     */
     private function printHeader(string $sourcePath): void
     {
         $this->info('============================================');
@@ -78,15 +82,15 @@ class SpikeAudioCommand extends Command
 
         if (file_exists($sourcePath)) {
             $fileSizeKb = round(filesize($sourcePath) / 1024, 2);
+            $detectedMime = (new Filesystem)->mimeType($sourcePath) ?: 'unknown';
+
             $this->line("  Audio file : {$sourcePath}");
             $this->line("  Size       : {$fileSizeKb} KB");
+            $this->line("  Detected   : {$detectedMime}");
             $this->line('');
         }
     }
 
-    /**
-     * Build the anonymous structured agent for the spike.
-     */
     private function buildAgent(): Agent&HasStructuredOutput
     {
         return new class implements Agent, HasStructuredOutput
@@ -109,15 +113,23 @@ class SpikeAudioCommand extends Command
         };
     }
 
+    private function buildAttachment(string $sourcePath, ?string $mimeType): LocalAudio
+    {
+        return Audio::fromPath($sourcePath, $mimeType);
+    }
+
     /**
-     * Run a single MIME-type test and return [success, latencyMs].
-     *
      * @return array{bool, int}
      */
-    private function runMimeTest(Agent&HasStructuredOutput $agent, string $label): array
-    {
+    private function runMimeTest(
+        Agent&HasStructuredOutput $agent,
+        LocalAudio $attachment,
+        string $label,
+        ?string $declaredMimeType,
+    ): array {
         $this->line('--------------------------------------------');
         $this->line("  Test: {$label}");
+        $this->line('  Declared : '.($declaredMimeType ?? '(filesystem-detected)'));
 
         $start = microtime(true);
 
@@ -125,7 +137,7 @@ class SpikeAudioCommand extends Command
             /** @var AgentResponse $response */
             $response = $agent->prompt(
                 'What is this audio? Describe it briefly.',
-                attachments: [Audio::fromStorage('audio-spike/test.m4a', disk: 'local')],
+                attachments: [$attachment],
                 provider: Lab::Gemini,
                 model: 'gemini-2.5-flash',
             );
@@ -139,6 +151,7 @@ class SpikeAudioCommand extends Command
             return [true, $latencyMs];
         } catch (Throwable $e) {
             $latencyMs = (int) round((microtime(true) - $start) * 1000);
+
             $this->error("  ❌ FAILED  ({$latencyMs}ms)");
             $this->line('  Error    : '.$e->getMessage());
             $this->line('');
@@ -147,9 +160,6 @@ class SpikeAudioCommand extends Command
         }
     }
 
-    /**
-     * Print the final verdict summary.
-     */
     private function printVerdict(?string $winnerMime, ?int $winnerLatency): void
     {
         $this->line('============================================');

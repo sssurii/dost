@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Ai\Agents\TutorAgent;
 use App\Events\AiResponseReady;
 use App\Events\RecordingFinished;
-use App\Jobs\GenerateTtsAudio;
 use App\Listeners\ProcessRecording;
 use App\Models\Recording;
 use App\Models\User;
@@ -60,7 +59,7 @@ describe('TutorProcessor', function () {
 
 describe('ProcessRecording Listener', function () {
 
-    it('dispatches AiResponseReady and GenerateTtsAudio on success', function () {
+    it('dispatches AiResponseReady without queuing TTS on success', function () {
         Storage::fake('public');
         Storage::disk('public')->put('recordings/1/test.m4a', 'fake-audio');
         Event::fake([AiResponseReady::class]);
@@ -77,7 +76,7 @@ describe('ProcessRecording Listener', function () {
         app(ProcessRecording::class)->handle(new RecordingFinished($recording));
 
         Event::assertDispatched(AiResponseReady::class);
-        Queue::assertPushed(GenerateTtsAudio::class);
+        Queue::assertNothingPushed();
     });
 
     it('skips non-pending recordings', function () {

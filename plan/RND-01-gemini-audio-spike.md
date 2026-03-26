@@ -15,6 +15,35 @@ This is a **time-boxed R&D spike** (max 5h). The output is a clear YES/NO + a wo
 
 ---
 
+## Verified Result
+
+**Status:** Confirmed on March 23, 2026
+
+The spike was run successfully with the repository command:
+
+```bash
+./bin/artisan spike:audio
+```
+
+Test file:
+
+- `storage/app/audio-spike/test.m4a`
+- size: `79.13 KB`
+- filesystem-detected MIME: `audio/x-m4a`
+
+Observed results:
+
+| Declared MIME | Result | Latency |
+|---|---|---:|
+| filesystem-detected (`audio/x-m4a`) | ✅ success | 3993ms |
+| `audio/mp4` | ✅ success | 3575ms |
+| `audio/aac` | ✅ success | 3834ms |
+| `audio/m4a` | ✅ success | 3534ms |
+
+**Conclusion:** Gemini 2.5 Flash accepted the `.m4a` test audio directly in every variant tested above. For this project, **no FFmpeg conversion step is required** for the current recording pipeline.
+
+---
+
 ## 2. Why This Matters
 
 NativePHP Mobile's `Microphone` plugin records in `.m4a` (AAC container, AAC-LC codec). Sending audio to Gemini requires a supported MIME type. If `.m4a`/`audio/mp4` is not accepted, every recording must be converted server-side — adding latency, CPU cost, and the `spatie/laravel-ffmpeg` dependency.
@@ -357,4 +386,3 @@ $response = $client
             ]),
     ]);
 ```
-
