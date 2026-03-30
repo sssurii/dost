@@ -84,6 +84,11 @@ return [
             'key' => env('GEMINI_API_KEY'),
         ],
 
+        'demo-broken' => [
+            'driver' => 'openai',
+            'key' => 'sk-INVALID-KEY-FOR-DEMO',
+        ],
+
         'groq' => [
             'driver' => 'groq',
             'key' => env('GROQ_API_KEY'),

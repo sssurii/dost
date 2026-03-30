@@ -128,12 +128,13 @@ services:
         condition: service_healthy
 
   # ── Queue worker — ai queue (Gemini / TutorAgent) ────────────────────────────
-  # timeout=30 + tries=2 must match ProcessRecording::$timeout and $tries exactly.
+  # timeout=120 supports longer AI jobs (TTS audio, image generation).
+  # tries=2 for retry on transient failures.
   queue-ai:
     image: dost-app
     container_name: dost-queue-ai
     restart: unless-stopped
-    command: php artisan queue:work --queue=ai --sleep=3 --tries=2 --timeout=30
+    command: php artisan queue:work --queue=ai --sleep=3 --tries=2 --timeout=120
     environment:
       WWWUSER:  "${WWWUSER:-1000}"
       WWWGROUP: "${WWWGROUP:-1000}"

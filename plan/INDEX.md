@@ -22,7 +22,9 @@ plan/
 ├── VOICE-02-tutor-agent.md           ← Phase 3
 ├── VOICE-03-tts-playback.md          ← Phase 3
 ├── DATA-01-pruning-privacy.md        ← Phase 4
-└── UI-02-progress-dashboard.md       ← Phase 4
+├── UI-02-progress-dashboard.md       ← Phase 4
+├── DEMO-01-ai-sdk-showcase.md       ← Standalone (presentation demo)
+└── DEMO-02-blog-studio.md           ← Standalone (unified demo — all features in one page)
 ```
 
 ---
@@ -125,7 +127,18 @@ INF-01 (Docker)
 
 ---
 
-## Total Estimate: ~36h of development
+### Standalone: Presentation Demos
+
+| Ticket | Title | Est. | Complexity | Status |
+|--------|-------|------|-----------|--------|
+| DEMO-01 | Laravel AI SDK Showcase (7 pages) | 4–6h | 3 | ✅ Implementation complete |
+| DEMO-02 | Blog Studio (unified single-page demo) | 3–4h | 3 | 🔲 Not started |
+
+**Goal:** 7 public Livewire pages (`/demo/*`) — one per PPT slide — showcasing `laravel/ai` text, image, audio, embeddings, agents+tools, and failover. Independent from Dost features. Requires `GEMINI_API_KEY` + `OPENAI_API_KEY`.
+
+---
+
+## Total Estimate: ~36h of development (+ ~5h demo)
 
 ---
 
